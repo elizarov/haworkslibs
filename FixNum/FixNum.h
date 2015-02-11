@@ -268,7 +268,7 @@ template<typename T1, prec_t prec1, typename T2, prec_t prec2> FixNum<typename F
   static const prec_t p0 = FixNumUtil::Max<prec1, prec2>::max;
   if (!a || !b) 
     return FixNum<T0, p0>::invalid;
-  return FixNumUtil::scaleUp((T0)a.mantissa(), prec1, p0) * (T0)FixNumUtil::Multiplier<p0>::multiplier / FixNumUtil::scaleUp((T0)b.mantissa(), prec2, p0);  
+  return FixNumUtil::scaleUp((T0)a.mantissa(), prec1, p0) * (T0)FixNumUtil::Multiplier<prec2>::multiplier / (T0)b.mantissa();  
 }
 
 // ----------- Arithmetics between fixnums and integers -----------
