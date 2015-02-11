@@ -33,11 +33,15 @@ public:
   inline FixNum() : _mantissa(invalid) {}
   inline FixNum(T mantissa) : _mantissa(mantissa) {}
 
+  // factory method to create from integer with appropriate scaling
+  inline static FixNum<T,prec> scale(T x) { return x * multiplier; }
+
   // basic conversions and valid/invalid
   inline T mantissa()       { return _mantissa; }
   inline bool valid()       { return _mantissa < FixNumUtil::Limits<T>::maxValue && _mantissa > FixNumUtil::Limits<T>::minValue; }
   inline void setInvalid()  { _mantissa = invalid; }
   inline explicit operator bool() { return valid(); }
+  inline bool operator!() { return !valid(); }
 
   // Buffer class with temporary char array
   class Buf {
@@ -56,14 +60,6 @@ public:
 
   // casts between various fixnum types
   template<typename T2, prec_t prec2> operator FixNum<T2, prec2>();
-
-  // Comparisons
-  template<typename T2, prec_t prec2> bool operator ==(FixNum<T2, prec2> other);
-  template<typename T2, prec_t prec2> bool operator !=(FixNum<T2, prec2> other);
-  template<typename T2, prec_t prec2> bool operator < (FixNum<T2, prec2> other);
-  template<typename T2, prec_t prec2> bool operator <=(FixNum<T2, prec2> other);
-  template<typename T2, prec_t prec2> bool operator > (FixNum<T2, prec2> other);
-  template<typename T2, prec_t prec2> bool operator >=(FixNum<T2, prec2> other);
 };
 
 // Basic fixnum instances
@@ -127,7 +123,8 @@ template<typename T, prec_t prec> inline typename FixNum<T, prec>::Buf FixNum<T,
 }
 
 template<typename T, prec_t prec> FixNum<T, prec>::Buf::Buf(FixNum<T, prec> num, uint8_t size, fmt_t fmt) {
-  size = FixNumUtil::min(size, sizeof(_buf) - 1); // trim to buf size
+  if (size > sizeof(_buf) - 1)
+    size = sizeof(_buf) - 1; // trim to buf size
   uint8_t actualSize = num.format(_buf, size, fmt);
   if (fmt & FMT_RIGHT)
     _buf[size] = 0;
@@ -137,66 +134,6 @@ template<typename T, prec_t prec> FixNum<T, prec>::Buf::Buf(FixNum<T, prec> num,
 
 template<typename T, prec_t prec> template<typename T2, prec_t prec2> inline FixNum<T, prec>::operator FixNum<T2, prec2>() {
   return FixNum<T2, prec2>(FixNumUtil::convert<T, T2>(_mantissa, prec, prec2));
-}
-
-template<typename T, prec_t prec> template<typename T2, prec_t prec2> bool FixNum<T, prec>::operator ==(FixNum<T2, prec2> other) {
-  if (!valid() || !other.valid())
-    return false;
-  typedef typename FixNumUtil::Common<T, T2>::type T0;
-  prec_t p0 = FixNumUtil::max(prec, prec2);
-  T0 x1 = FixNumUtil::scale((T0)_mantissa, prec, p0);
-  T0 x2 = FixNumUtil::scale((T0)other.mantissa(), prec2, p0);
-  return x1 == x2;  
-}
-
-template<typename T, prec_t prec> template<typename T2, prec_t prec2> bool FixNum<T, prec>::operator !=(FixNum<T2, prec2> other) {
-  if (!valid() || !other.valid())
-    return false;
-  typedef typename FixNumUtil::Common<T, T2>::type T0;
-  prec_t p0 = FixNumUtil::max(prec, prec2);
-  T0 x1 = FixNumUtil::scale((T0)_mantissa, prec, p0);
-  T0 x2 = FixNumUtil::scale((T0)other.mantissa(), prec2, p0);
-  return x1 != x2;  
-}
-  
-template<typename T, prec_t prec> template<typename T2, prec_t prec2> bool FixNum<T, prec>::operator < (FixNum<T2, prec2> other) {
-  if (!valid() || !other.valid())
-    return false;
-  typedef typename FixNumUtil::Common<T, T2>::type T0;
-  prec_t p0 = FixNumUtil::max(prec, prec2);
-  T0 x1 = FixNumUtil::scale((T0)_mantissa, prec, p0);
-  T0 x2 = FixNumUtil::scale((T0)other.mantissa(), prec2, p0);
-  return x1 < x2;  
-}
-  
-template<typename T, prec_t prec> template<typename T2, prec_t prec2> bool FixNum<T, prec>::operator <=(FixNum<T2, prec2> other) {
-  if (!valid() || !other.valid())
-    return false;
-  typedef typename FixNumUtil::Common<T, T2>::type T0;
-  prec_t p0 = FixNumUtil::max(prec, prec2);
-  T0 x1 = FixNumUtil::scale((T0)_mantissa, prec, p0);
-  T0 x2 = FixNumUtil::scale((T0)other.mantissa(), prec2, p0);
-  return x1 <= x2;  
-}
-  
-template<typename T, prec_t prec> template<typename T2, prec_t prec2> bool FixNum<T, prec>::operator > (FixNum<T2, prec2> other) {
-  if (!valid() || !other.valid())
-    return false;
-  typedef typename FixNumUtil::Common<T, T2>::type T0;
-  prec_t p0 = FixNumUtil::max(prec, prec2);
-  T0 x1 = FixNumUtil::scale((T0)_mantissa, prec, p0);
-  T0 x2 = FixNumUtil::scale((T0)other.mantissa(), prec2, p0);
-  return x1 > x2;  
-}
-  
-template<typename T, prec_t prec> template<typename T2, prec_t prec2> bool FixNum<T, prec>::operator >=(FixNum<T2, prec2> other) {
-  if (!valid() || !other.valid())
-    return false;
-  typedef typename FixNumUtil::Common<T, T2>::type T0;
-  prec_t p0 = FixNumUtil::max(prec, prec2);
-  T0 x1 = FixNumUtil::scale((T0)_mantissa, prec, p0);
-  T0 x2 = FixNumUtil::scale((T0)other.mantissa(), prec2, p0);
-  return x1 >= x2;  
 }
 
 // ----------- class FixNumParser implementation -----------
@@ -249,5 +186,101 @@ template<typename T> template<typename T2, prec_t prec2> inline FixNumParser<T>:
   T x = _neg ? -_mantissa : _mantissa;
   return FixNum<T2, prec2>(FixNumUtil::convert<T, T2>(x, _prec, prec2));  
 }
+
+// ----------- Comparisons between fixnums -----------
+
+template<typename T1, prec_t prec1, typename T2, prec_t prec2> bool operator ==(FixNum<T1, prec1> a, FixNum<T2, prec2> b) {
+  if (!a || !b) 
+    return false;
+  typedef typename FixNumUtil::Common<T1, T2>::type T0;
+  static const prec_t p0 = FixNumUtil::Max<prec1, prec2>::max;
+  return FixNumUtil::scaleUp((T0)a.mantissa(), prec1, p0) == FixNumUtil::scaleUp((T0)b.mantissa(), prec2, p0);  
+}
+
+template<typename T1, prec_t prec1, typename T2, prec_t prec2> bool operator !=(FixNum<T1, prec1> a, FixNum<T2, prec2> b) {
+  if (!a || !b) 
+    return false;
+  typedef typename FixNumUtil::Common<T1, T2>::type T0;
+  static const prec_t p0 = FixNumUtil::Max<prec1, prec2>::max;
+  return FixNumUtil::scaleUp((T0)a.mantissa(), prec1, p0) != FixNumUtil::scaleUp((T0)b.mantissa(), prec2, p0);  
+}
+
+template<typename T1, prec_t prec1, typename T2, prec_t prec2> bool operator < (FixNum<T1, prec1> a, FixNum<T2, prec2> b) {
+  if (!a || !b) 
+    return false;
+  typedef typename FixNumUtil::Common<T1, T2>::type T0;
+  static const prec_t p0 = FixNumUtil::Max<prec1, prec2>::max;
+  return FixNumUtil::scaleUp((T0)a.mantissa(), prec1, p0) < FixNumUtil::scaleUp((T0)b.mantissa(), prec2, p0);  
+}
+
+template<typename T1, prec_t prec1, typename T2, prec_t prec2> bool operator <=(FixNum<T1, prec1> a, FixNum<T2, prec2> b) {
+  if (!a || !b) 
+    return false;
+  typedef typename FixNumUtil::Common<T1, T2>::type T0;
+  static const prec_t p0 = FixNumUtil::Max<prec1, prec2>::max;
+  return FixNumUtil::scaleUp((T0)a.mantissa(), prec1, p0) <= FixNumUtil::scaleUp((T0)b.mantissa(), prec2, p0);  
+}
+
+template<typename T1, prec_t prec1, typename T2, prec_t prec2> bool operator > (FixNum<T1, prec1> a, FixNum<T2, prec2> b) {
+  if (!a || !b) 
+    return false;
+  typedef typename FixNumUtil::Common<T1, T2>::type T0;
+  static const prec_t p0 = FixNumUtil::Max<prec1, prec2>::max;
+  return FixNumUtil::scaleUp((T0)a.mantissa(), prec1, p0) > FixNumUtil::scaleUp((T0)b.mantissa(), prec2, p0);  
+}
+
+template<typename T1, prec_t prec1, typename T2, prec_t prec2> bool operator >=(FixNum<T1, prec1> a, FixNum<T2, prec2> b) {
+  if (!a || !b) 
+    return false;
+  typedef typename FixNumUtil::Common<T1, T2>::type T0;
+  static const prec_t p0 = FixNumUtil::Max<prec1, prec2>::max;
+  return FixNumUtil::scaleUp((T0)a.mantissa(), prec1, p0) >= FixNumUtil::scaleUp((T0)b.mantissa(), prec2, p0);  
+}
+
+// ----------- Arithmetics between fixnums -----------
+
+template<typename T1, prec_t prec1, typename T2, prec_t prec2> FixNum<typename FixNumUtil::Common<T1, T2>::type, FixNumUtil::Max<prec1, prec2>::max> operator +(FixNum<T1, prec1> a, FixNum<T2, prec2> b) {
+  typedef typename FixNumUtil::Common<T1, T2>::type T0;
+  static const prec_t p0 = FixNumUtil::Max<prec1, prec2>::max;
+  if (!a || !b) 
+    return FixNum<T0, p0>::invalid;
+  return FixNumUtil::scaleUp((T0)a.mantissa(), prec1, p0) + FixNumUtil::scaleUp((T0)b.mantissa(), prec2, p0);  
+}
+
+template<typename T1, prec_t prec1, typename T2, prec_t prec2> FixNum<typename FixNumUtil::Common<T1, T2>::type, FixNumUtil::Max<prec1, prec2>::max> operator -(FixNum<T1, prec1> a, FixNum<T2, prec2> b) {
+  typedef typename FixNumUtil::Common<T1, T2>::type T0;
+  static const prec_t p0 = FixNumUtil::Max<prec1, prec2>::max;
+  if (!a || !b) 
+    return FixNum<T0, p0>::invalid;
+  return FixNumUtil::scaleUp((T0)a.mantissa(), prec1, p0) - FixNumUtil::scaleUp((T0)b.mantissa(), prec2, p0);  
+}
+
+template<typename T1, prec_t prec1, typename T2, prec_t prec2> FixNum<typename FixNumUtil::Common<T1, T2>::type, prec1 + prec2> operator *(FixNum<T1, prec1> a, FixNum<T2, prec2> b) {
+  typedef typename FixNumUtil::Common<T1, T2>::type T0;
+  static const prec_t p0 = prec1 + prec2;
+  if (!a || !b) 
+    return FixNum<T0, p0>::invalid;
+  return (T0)a.mantissa() * (T0)b.mantissa();  
+}
+
+template<typename T1, prec_t prec1, typename T2, prec_t prec2> FixNum<typename FixNumUtil::Common<T1, T2>::type, FixNumUtil::Max<prec1, prec2>::max> operator /(FixNum<T1, prec1> a, FixNum<T2, prec2> b) {
+  typedef typename FixNumUtil::Common<T1, T2>::type T0;
+  static const prec_t p0 = FixNumUtil::Max<prec1, prec2>::max;
+  if (!a || !b) 
+    return FixNum<T0, p0>::invalid;
+  return FixNumUtil::scaleUp((T0)a.mantissa(), prec1, p0) * (T0)FixNumUtil::Multiplier<p0>::multiplier / FixNumUtil::scaleUp((T0)b.mantissa(), prec2, p0);  
+}
+
+// ----------- Arithmetics between fixnums and integers -----------
+
+template<typename T1, prec_t prec1, typename T2> FixNum<typename FixNumUtil::Common<T1, T2>::type, prec1> operator +(FixNum<T1, prec1> a, T2 b) { return a + (FixNum<T2,0>)b; }
+template<typename T1, prec_t prec1, typename T2> FixNum<typename FixNumUtil::Common<T1, T2>::type, prec1> operator -(FixNum<T1, prec1> a, T2 b) { return a - (FixNum<T2,0>)b; }
+template<typename T1, prec_t prec1, typename T2> FixNum<typename FixNumUtil::Common<T1, T2>::type, prec1> operator *(FixNum<T1, prec1> a, T2 b) { return a * (FixNum<T2,0>)b; }
+template<typename T1, prec_t prec1, typename T2> FixNum<typename FixNumUtil::Common<T1, T2>::type, prec1> operator /(FixNum<T1, prec1> a, T2 b) { return a / (FixNum<T2,0>)b; }
+
+template<typename T1, typename T2, prec_t prec2> FixNum<typename FixNumUtil::Common<T1, T2>::type, prec2> operator +(T1 a, FixNum<T2, prec2> b) { return (FixNum<T1,0>)a + b; }
+template<typename T1, typename T2, prec_t prec2> FixNum<typename FixNumUtil::Common<T1, T2>::type, prec2> operator -(T1 a, FixNum<T2, prec2> b) { return (FixNum<T1,0>)a - b; }
+template<typename T1, typename T2, prec_t prec2> FixNum<typename FixNumUtil::Common<T1, T2>::type, prec2> operator *(T1 a, FixNum<T2, prec2> b) { return (FixNum<T1,0>)a * b; }
+template<typename T1, typename T2, prec_t prec2> FixNum<typename FixNumUtil::Common<T1, T2>::type, prec2> operator /(T1 a, FixNum<T2, prec2> b) { return (FixNum<T1,0>)a / b; }
 
 #endif

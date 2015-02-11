@@ -23,11 +23,6 @@ namespace FixNumUtil {
   template<> struct Multiplier<5> { static const int32_t multiplier = 100000; };
   template<> struct Multiplier<6> { static const int32_t multiplier = 1000000; };
 
-  // ----------- Helper min/max function -----------
-
-  inline uint8_t min(uint8_t a, uint8_t b) { return a < b ? a : b; }
-  inline uint8_t max(uint8_t a, uint8_t b) { return a > b ? a : b; }
-
   // ----------- Define limits for supported types -----------
   
   template<typename T> struct Limits {};
@@ -79,7 +74,67 @@ namespace FixNumUtil {
   template<> struct Common<int32_t, int8_t>  { typedef int32_t type; };
   template<> struct Common<int32_t, int16_t> { typedef int32_t type; };
   template<> struct Common<int32_t, int32_t> { typedef int32_t type; };
-  
+
+  // ----------- Compile-time max -----------
+
+  template<prec_t prec1, prec_t prec2> struct Max {};
+
+  template<> struct Max<0,0> { static const prec_t max = 0; };
+  template<> struct Max<0,1> { static const prec_t max = 1; };
+  template<> struct Max<0,2> { static const prec_t max = 2; };
+  template<> struct Max<0,3> { static const prec_t max = 3; };
+  template<> struct Max<0,4> { static const prec_t max = 4; };
+  template<> struct Max<0,5> { static const prec_t max = 5; };
+  template<> struct Max<0,6> { static const prec_t max = 6; };
+ 
+  template<> struct Max<1,0> { static const prec_t max = 1; };
+  template<> struct Max<1,1> { static const prec_t max = 1; };
+  template<> struct Max<1,2> { static const prec_t max = 2; };
+  template<> struct Max<1,3> { static const prec_t max = 3; };
+  template<> struct Max<1,4> { static const prec_t max = 4; };
+  template<> struct Max<1,5> { static const prec_t max = 5; };
+  template<> struct Max<1,6> { static const prec_t max = 6; };
+ 
+  template<> struct Max<2,0> { static const prec_t max = 2; };
+  template<> struct Max<2,1> { static const prec_t max = 2; };
+  template<> struct Max<2,2> { static const prec_t max = 2; };
+  template<> struct Max<2,3> { static const prec_t max = 3; };
+  template<> struct Max<2,4> { static const prec_t max = 4; };
+  template<> struct Max<2,5> { static const prec_t max = 5; };
+  template<> struct Max<2,6> { static const prec_t max = 6; };
+ 
+  template<> struct Max<3,0> { static const prec_t max = 3; };
+  template<> struct Max<3,1> { static const prec_t max = 3; };
+  template<> struct Max<3,2> { static const prec_t max = 3; };
+  template<> struct Max<3,3> { static const prec_t max = 3; };
+  template<> struct Max<3,4> { static const prec_t max = 4; };
+  template<> struct Max<3,5> { static const prec_t max = 5; };
+  template<> struct Max<3,6> { static const prec_t max = 6; };
+ 
+  template<> struct Max<4,0> { static const prec_t max = 4; };
+  template<> struct Max<4,1> { static const prec_t max = 4; };
+  template<> struct Max<4,2> { static const prec_t max = 4; };
+  template<> struct Max<4,3> { static const prec_t max = 4; };
+  template<> struct Max<4,4> { static const prec_t max = 4; };
+  template<> struct Max<4,5> { static const prec_t max = 5; };
+  template<> struct Max<4,6> { static const prec_t max = 6; };
+ 
+  template<> struct Max<5,0> { static const prec_t max = 5; };
+  template<> struct Max<5,1> { static const prec_t max = 5; };
+  template<> struct Max<5,2> { static const prec_t max = 5; };
+  template<> struct Max<5,3> { static const prec_t max = 5; };
+  template<> struct Max<5,4> { static const prec_t max = 5; };
+  template<> struct Max<5,5> { static const prec_t max = 5; };
+  template<> struct Max<5,6> { static const prec_t max = 6; };
+ 
+  template<> struct Max<6,0> { static const prec_t max = 6; };
+  template<> struct Max<6,1> { static const prec_t max = 6; };
+  template<> struct Max<6,2> { static const prec_t max = 6; };
+  template<> struct Max<6,3> { static const prec_t max = 6; };
+  template<> struct Max<6,4> { static const prec_t max = 6; };
+  template<> struct Max<6,5> { static const prec_t max = 6; };
+  template<> struct Max<6,6> { static const prec_t max = 6; };
+ 
   // ----------- Narrow one type into the other -----------
   
   template<typename T1, typename T2> inline T2 narrow(T1 x) {
@@ -91,7 +146,7 @@ namespace FixNumUtil {
 
   // ----------- Change decimal precision -----------
 
-  template<typename T> T scaleUp(T x, prec_t prec1, prec_t prec2) {
+  template<typename T> inline T scaleUp(T x, prec_t prec1, prec_t prec2) {
     for (prec_t i = prec1; i < prec2; i++) {
       if (x > Limits<T>::maxValue / 10)
         return Limits<T>::maxValue;
@@ -102,7 +157,7 @@ namespace FixNumUtil {
     return x;
   }
 
-  template<typename T> T scaleDown(T x, prec_t prec1, prec_t prec2) {
+  template<typename T> inline T scaleDown(T x, prec_t prec1, prec_t prec2) {
     for (prec_t i = prec2; i < prec1; i++) {
       T mod = x % 10;
       x = x / 10;
