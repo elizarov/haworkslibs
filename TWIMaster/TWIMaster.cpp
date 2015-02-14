@@ -7,7 +7,6 @@
 
 #include <Arduino.h>
 
-const uint8_t ERROR = 1;
 const uint8_t PIN_BITS = _BV(PORTC4) | _BV(PORTC5);
 
 // result != 0 means error, error code is returned
@@ -16,7 +15,7 @@ static uint8_t twiWait(uint8_t expected) {
     sleep_mode();
   uint8_t status = TW_STATUS;
   if (status != expected)
-    return status | ERROR;
+    return status == 0 ? 0xff : status; // replace TWI status 0 with erorr code 0xff
   return 0;
 }
 
