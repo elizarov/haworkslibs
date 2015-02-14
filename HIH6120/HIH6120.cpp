@@ -1,6 +1,12 @@
 
 #include "HIH6120.h"
 
+static const uint8_t ADDR = 0x27;
+static const uint8_t RETRY_LIMIT = 3;
+static const unsigned long MEASURE = 50; 
+static const unsigned long RETRY = Timeout::SECOND; 
+static const unsigned long WAIT = 5 * Timeout::SECOND; 
+
 uint8_t HIH6120::Data::set(uint8_t (&b)[BYTES]) {
   h = (((uint16_t)b[0] & 0x3f) << 8) | b[1];
   t = ((uint16_t)b[2] << 6) | (b[3] >> 2);
@@ -29,9 +35,9 @@ uint8_t HIH6120::receive() {
     return status;
   Data vdata; // verify data
   if (vdata.set(b) != 1)
-    return 1; // should have been stale
+    return 2; // should have been stale
   if (vdata.h != _data.h || vdata.t != _data.t)
-    return 1; // different data second time
+    return 3; // different data second time
   return 0;
 }
 
@@ -50,6 +56,7 @@ bool HIH6120::check() {
   if (_measure) {
     uint8_t status = TWIMaster(_twi_speed).transmit(ADDR, 0, 0);
     if (status != 0) {
+      _last_error = status;
       retry();
     } else {
       _measure = false;
@@ -58,11 +65,13 @@ bool HIH6120::check() {
   } else {
     uint8_t status = receive();
     if (status != 0) {
+      _last_error = status;
       retry();
     } else {
       _valid = true;
       _retry_count = 0;
       _measure = true;
+      _last_error = 0;
       _timeout.reset(WAIT);
       return true;
     }
@@ -75,9 +84,13 @@ HIH6120::rh_t HIH6120::getRH() {
      return rh_t::invalid;
   return fixnum32_1::scale(_data.h) * 100 / ((1 << 14) - 1);
 }
-
+                                               
 HIH6120::temp_t HIH6120::getTemp() {
   if (!_valid)
      return temp_t::invalid;
   return fixnum32_1::scale(_data.t) * 165 / ((1 << 14) - 1) - 40;
+}
+
+uint16_t HIH6120::getState() {
+  return (_last_error << 8) | (_measure ? 0 : 1);
 }
