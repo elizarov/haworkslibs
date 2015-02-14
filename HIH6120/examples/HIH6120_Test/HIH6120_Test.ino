@@ -3,7 +3,7 @@
 #include <TWIMaster.h>
 #include <FixNum.h>
 
-HIH6120 hih6120(TWI_100K);
+HIH6120 hih6120(TWI_10K);
 Timeout stateTimeout(Timeout::SECOND);
 
 void setup() {
