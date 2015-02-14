@@ -14,7 +14,7 @@
   There is also an efficient state-machine driven parser.
 */
 
-#include "utility/FmtUtil.h"
+#include "FmtUtil.h"
 #include "utility/FixNumUtil.h"
 
 //============================ Public API for FixNum library ============================
