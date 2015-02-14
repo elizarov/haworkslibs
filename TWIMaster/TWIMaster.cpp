@@ -121,15 +121,17 @@ uint8_t TWIMaster::transmit(uint8_t addr, uint8_t* buf, uint8_t n) {
 #endif
   // write slave address + W, then data bits
   uint8_t b = (addr << 1) | TW_WRITE;
+  uint8_t expect = TW_MT_SLA_ACK;
   while (true) {
     TWDR = b;
     TWCR = _BV(TWINT) | _BV(TWEN);
-    status = twiWait(TW_MT_SLA_ACK);
+    status = twiWait(expect);
     if (status != 0)
       return status;
     if (n-- == 0)
       break;
     b = *(buf++);
+    expect = TW_MT_DATA_ACK;
   }
   return 0;
 }
