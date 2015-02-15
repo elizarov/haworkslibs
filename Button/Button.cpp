@@ -10,7 +10,7 @@ Button::Button(uint8_t pin) :
 }
 
 bool Button::check() {
-  bool state = digitalRead(_pin);
+  bool state = digitalRead(_pin) == 0;
   if (state == _state) {
     _timeout.disable();
     return false;

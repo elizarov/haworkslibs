@@ -1,5 +1,7 @@
 /*
   Simple debounced button driver.
+  Button is connected between a specified pin and a ground. 
+  Internull pullup on the pin is used.
 */
 #ifndef BUTTON_H_
 #define BUTTON_H_

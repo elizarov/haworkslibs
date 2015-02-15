@@ -11,6 +11,7 @@ class BlinkLed {
 public:
   BlinkLed(uint8_t pin);
   void blink(unsigned int interval);
+  void off();
 
 private:
   uint8_t       _pin;

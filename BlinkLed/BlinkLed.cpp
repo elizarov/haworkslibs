@@ -14,3 +14,9 @@ void BlinkLed::blink(unsigned int interval) {
     digitalWrite(_pin, _state);
   }
 }
+
+void BlinkLed::off() {
+  _time = millis();
+  _state = false; // will turn on after next blink call
+  digitalWrite(_pin, 0);
+}
