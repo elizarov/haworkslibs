@@ -1,0 +1,5 @@
+Button	KEYWORD1
+
+check	KEYWORD2
+pressed	KEYWORD2
+released	KEYWORD2
