@@ -1,5 +1,11 @@
+/*
+  Honeywell HIH6120 I2C temperature and humidity sensor driver.
+
+  Author: Roman Elizarov
+*/
+
 #ifndef HIH6120_H_
-#define HIH6220_H_
+#define HIH6120_H_
 
 #include <Arduino.h>
 #include <FixNum.h>
@@ -8,35 +14,40 @@
 
 class HIH6120 {
 public:
-  typedef fixnum16_1 rh_t;  
   typedef fixnum16_1 temp_t;  
+  typedef fixnum16_1 rh_t;  
 
-  HIH6120(twi_speed_t twi_speed);
-  bool check();
-  rh_t getRH();
+  HIH6120();
+  bool check();        // true when something change (new reading taken or old one is cleared on too many errors)
   temp_t getTemp();
+  rh_t getRH();
   uint16_t getState(); // last error code and status for debugging
 
 private:
-  static const uint8_t BYTES = 4;
-
-  struct Data {
-    uint16_t h; // rh
-    uint16_t t; // temp 
-    
-    uint8_t set(uint8_t (&b)[BYTES]);
-  };
-
-  twi_speed_t _twi_speed;
-  Data _data;
-  Timeout _timeout;
-  bool _measure;
   bool _valid;
+  temp_t _temp;
+  rh_t _rh;
+  Timeout _timeout;
+  uint8_t _state; // 0 - send measure cmd, 1 - receive measurement
   uint8_t _last_error;
   uint8_t _retry_count;
 
   uint8_t receive();
-  void retry();
+  bool retry();
 };
+
+// ------------ short method implementations are inline here ------------
+
+inline HIH6120::temp_t HIH6120::getTemp() {
+  return _temp;
+}
+
+inline HIH6120::rh_t HIH6120::getRH() {
+  return _rh;
+}
+
+inline uint16_t HIH6120::getState() {
+  return (_last_error << 8) | _state;
+}
 
 #endif

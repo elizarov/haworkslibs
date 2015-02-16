@@ -1,96 +1,107 @@
 
 #include "HIH6120.h"
 
+static const uint8_t STATE_MEASURE = 0;
+static const uint8_t STATE_RECEIVE = 1;
+
 static const uint8_t ADDR = 0x27;
+static const uint8_t BYTES = 4;
 static const uint8_t RETRY_LIMIT = 3;
 static const unsigned long MEASURE = 50; 
 static const unsigned long RETRY = Timeout::SECOND; 
 static const unsigned long WAIT = 5 * Timeout::SECOND; 
 
-uint8_t HIH6120::Data::set(uint8_t (&b)[BYTES]) {
+struct Data {
+  uint16_t t; // temp 
+  uint16_t h; // rh
+  
+  uint8_t set(uint8_t (&b)[BYTES]);
+};
+
+inline uint8_t Data::set(uint8_t (&b)[BYTES]) {
   h = (((uint16_t)b[0] & 0x3f) << 8) | b[1];
   t = ((uint16_t)b[2] << 6) | (b[3] >> 2);
   return b[0] >> 6;
 }
 
-HIH6120::HIH6120(twi_speed_t twi_speed) : 
-  _twi_speed(twi_speed),
-  _timeout(0),
-  _measure(true)
+HIH6120::HIH6120() : 
+  _timeout(0)
 {}
 
-uint8_t HIH6120::receive() {
+inline uint8_t HIH6120::receive() {
   // start twi master transaction
-  TWIMaster twiMaster(_twi_speed); 
   uint8_t status;
   uint8_t b[BYTES];
-  status = twiMaster.receive(ADDR, b, BYTES);
+  // there is no CRC, so keepBus to do second transfer without releasing twi bus to verify correctness 
+  status = TWIMaster.receive(ADDR, b, BYTES, true);
   if (status != 0)
     return status;
-  if (_data.set(b) != 0)
+  Data data1;
+  if (data1.set(b) != 0) {
+    TWIMaster.stop();
     return 1; // stale data fetched
-  // there is no CRC, so do second transfer without releasing twi bus to verify correctness 
-  status = twiMaster.receive(ADDR, b, BYTES);
+  }
+  // second transfer
+  status = TWIMaster.receive(ADDR, b, BYTES);
   if (status != 0)
     return status;
-  Data vdata; // verify data
-  if (vdata.set(b) != 1)
+  Data data2; // verify data
+  if (data2.set(b) != 1)
     return 2; // should have been stale
-  if (vdata.h != _data.h || vdata.t != _data.t)
+  if (data1.h != data1.h || data2.t != data2.t)
     return 3; // different data second time
+  // update temp and rh
+  _temp = fixnum32_1::scale(data1.t) * 165 / ((1 << 14) - 1) - 40;
+  if (!_temp)
+    return 4; // invalid temp reading
+  _rh = fixnum32_1::scale(data1.h) * 100 / ((1 << 14) - 1);
+  if (!_rh)
+    return 5; // invalid RH reading
   return 0;
 }
 
-void HIH6120::retry() {
+bool HIH6120::retry() {
   _timeout.reset(RETRY);
-  _measure = true;
-  if (_valid) {
-    if (_retry_count++ >= RETRY_LIMIT)
-      _valid = false;
-  }
-}
-
-bool HIH6120::check() {
-  if (!_timeout.check())
-    return false;
-  if (_measure) {
-    uint8_t status = TWIMaster(_twi_speed).transmit(ADDR, 0, 0);
-    if (status != 0) {
-      _last_error = status;
-      retry();
-    } else {
-      _measure = false;
-      _timeout.reset(MEASURE);
-    }
-  } else {
-    uint8_t status = receive();
-    if (status != 0) {
-      _last_error = status;
-      retry();
-    } else {
-      _valid = true;
-      _retry_count = 0;
-      _measure = true;
-      _last_error = 0;
-      _timeout.reset(WAIT);
+  _state = STATE_MEASURE;
+  if (_temp) {
+    if (_retry_count++ >= RETRY_LIMIT) {
+      _temp.setInvalid();
+      _rh.setInvalid();
       return true;
     }
   }
   return false;
 }
 
-HIH6120::rh_t HIH6120::getRH() {
-  if (!_valid)
-     return rh_t::invalid;
-  return fixnum32_1::scale(_data.h) * 100 / ((1 << 14) - 1);
-}
-                                               
-HIH6120::temp_t HIH6120::getTemp() {
-  if (!_valid)
-     return temp_t::invalid;
-  return fixnum32_1::scale(_data.t) * 165 / ((1 << 14) - 1) - 40;
-}
-
-uint16_t HIH6120::getState() {
-  return (_last_error << 8) | (_measure ? 0 : 1);
+bool HIH6120::check() {
+  if (!_timeout.check())
+    return false;
+  uint8_t status;
+  switch (_state) {
+  case STATE_MEASURE:
+    status = TWIMaster.transmit(ADDR, 0, 0);
+    if (status != 0) {
+      _last_error = status;
+      if (retry())
+        return true;
+    } else {
+      _state = STATE_RECEIVE;
+      _timeout.reset(MEASURE);
+    }
+    break;
+  default: // STATE_RECEIVE
+    status = receive();
+    if (status != 0) {
+      _last_error = status;
+      if (retry())
+        return true;
+    } else {
+      _retry_count = 0;
+      _last_error = 0;
+      _state = STATE_MEASURE;
+      _timeout.reset(WAIT);
+      return true;
+    }
+  }
+  return false;
 }
