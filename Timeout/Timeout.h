@@ -24,7 +24,7 @@
 
 class Timeout {
 public:
-  typedef unsigned long type; // Arduino is using "unsigned long" in millis()
+  typedef long type; // Arduino is using "unsigned long" in millis(), but we use signed for wrapping checks
 
   static const type SECOND = 1000UL;
   static const type MINUTE = 60 * SECOND;
@@ -42,8 +42,6 @@ public:
   void reset(type interval); // starts / resets to a specified interval
 
 private:
-  typedef long signedType;   // used internally for "wrapping" checks on type
-
   type _time;
 };
 
