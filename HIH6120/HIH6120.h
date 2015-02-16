@@ -1,5 +1,17 @@
 /*
   Honeywell HIH6120 I2C temperature and humidity sensor driver.
+  Connect sensor to I2C pins:
+  
+  +-------+
+  | *     |
+  +-------+
+   | | | |
+   1 2 3 4
+
+  1 - VDD 
+  2 - GND
+  3 - SCL --> A5
+  4 - SDA --> A4
 
   Author: Roman Elizarov
 */
