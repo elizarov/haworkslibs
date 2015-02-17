@@ -1,7 +1,7 @@
 
 #include "humidity.h"
 
-#include <avr/progmem.h>
+#include <avr/pgmspace.h>
 
 const int16_t MIN_T = -40;
 const int16_t MAX_T = 40;
@@ -91,7 +91,19 @@ const int32_t WVP[MAX_T - MIN_T + 1] PROGMEM = {
   73773L  // to +40 Celcius
 };
 
-wvp_t waterVaporPressure(fixnum16_2 temp, fixnum16_1 rh) {
-  // todo
-  return 0;
+wvp_t waterVaporPressure(wvp_temp_t temp, wvp_rh_t rh) {
+  if (!temp || !rh)
+    return wvp_t::invalid;
+  int16_t t = temp.floor();
+  if (t < MIN_T || t >= MAX_T)
+    return wvp_t::invalid;
+  if (rh > 100)
+    rh = 100; 
+  if (rh < 0)
+    rh = 0;
+  wvp_t p0 = (int32_t)pgm_read_dword(WVP + t - MIN_T);
+  wvp_t p1 = (int32_t)pgm_read_dword(WVP + t - MIN_T + 1); 
+  wvp_temp_t t0 = temp - wvp_temp_t::scale(t);
+  wvp_temp_t t1 = 1 - t0;
+  return (p0 * t0 + p1 * t1) * rh / 100;
 }
