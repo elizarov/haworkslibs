@@ -43,6 +43,9 @@ public:
   inline explicit operator bool() { return valid(); }
   inline bool operator!() { return !valid(); }
 
+  // additional math
+  T floor();
+
   // Buffer class with temporary char array
   class Buf {
   private:
@@ -113,6 +116,14 @@ template<typename T> class FixNumParser {
 };
 
 // ----------- class FixNum implementation -----------
+
+template<typename T, prec_t prec> T FixNum<T, prec>::floor() {
+  if (_mantissa >= FixNumUtil::Limits<T>::maxValue)
+    return FixNumUtil::Limits<T>::maxValue;
+  if (_mantissa <= FixNumUtil::Limits<T>::minValue + multiplier - 1)
+    return FixNumUtil::Limits<T>::minValue;
+  return _mantissa >= 0 ? _mantissa / multiplier : (_mantissa - multiplier + 1) / multiplier;
+}
 
 template<typename T, prec_t prec> inline uint8_t FixNum<T, prec>::format(char* pos, prec_t size, fmt_t fmt) {
   return valid() ? formatDecimal(FixNumUtil::scale(_mantissa, prec, fmt & FMT_PREC), pos, size, fmt) : formatInvalid(pos, size, fmt);
@@ -268,8 +279,24 @@ template<typename T1, prec_t prec1, typename T2, prec_t prec2> FixNum<typename F
   static const prec_t p0 = FixNumUtil::Max<prec1, prec2>::max;
   if (!a || !b) 
     return FixNum<T0, p0>::invalid;
-  return FixNumUtil::scaleUp((T0)a.mantissa(), prec1, p0) * (T0)FixNumUtil::Multiplier<prec2>::multiplier / (T0)b.mantissa();  
+  return FixNumUtil::scaleUp((T0)a.mantissa(), prec1, p0 + prec2) / (T0)b.mantissa();  
 }
+
+// ----------- Comparisons between fixnums and integers -----------
+
+template<typename T1, prec_t prec1, typename T2> bool operator ==(FixNum<T1, prec1> a, T2 b) { return a == (FixNum<T2,0>)b; }
+template<typename T1, prec_t prec1, typename T2> bool operator !=(FixNum<T1, prec1> a, T2 b) { return a != (FixNum<T2,0>)b; }
+template<typename T1, prec_t prec1, typename T2> bool operator < (FixNum<T1, prec1> a, T2 b) { return a <  (FixNum<T2,0>)b; }
+template<typename T1, prec_t prec1, typename T2> bool operator <=(FixNum<T1, prec1> a, T2 b) { return a <= (FixNum<T2,0>)b; }
+template<typename T1, prec_t prec1, typename T2> bool operator > (FixNum<T1, prec1> a, T2 b) { return a >  (FixNum<T2,0>)b; }
+template<typename T1, prec_t prec1, typename T2> bool operator >=(FixNum<T1, prec1> a, T2 b) { return a >= (FixNum<T2,0>)b; }
+
+template<typename T1, typename T2, prec_t prec2> bool operator ==(T1 a, FixNum<T2, prec2> b) { return (FixNum<T1,0>)a == b; }
+template<typename T1, typename T2, prec_t prec2> bool operator !=(T1 a, FixNum<T2, prec2> b) { return (FixNum<T1,0>)a != b; }
+template<typename T1, typename T2, prec_t prec2> bool operator < (T1 a, FixNum<T2, prec2> b) { return (FixNum<T1,0>)a <  b; }
+template<typename T1, typename T2, prec_t prec2> bool operator <=(T1 a, FixNum<T2, prec2> b) { return (FixNum<T1,0>)a <= b; }
+template<typename T1, typename T2, prec_t prec2> bool operator > (T1 a, FixNum<T2, prec2> b) { return (FixNum<T1,0>)a >  b; }
+template<typename T1, typename T2, prec_t prec2> bool operator >=(T1 a, FixNum<T2, prec2> b) { return (FixNum<T1,0>)a >= b; }
 
 // ----------- Arithmetics between fixnums and integers -----------
 
