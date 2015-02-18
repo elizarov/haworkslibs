@@ -53,19 +53,20 @@ const int SHT1X_DATA_HOLD_US = 20;
 inline void SHT1X::CLOCK_HIGH() { cli(); digitalWrite(_clk_pin, HIGH); sei(); _delay_us(SHT1X_DATA_HOLD_US); }
 inline void SHT1X::CLOCK_LOW()  { cli(); digitalWrite(_clk_pin, LOW ); sei(); _delay_us(SHT1X_DATA_HOLD_US); }
 
-const uint8_t FAIL_RESET_THRESHOLD = 3;
-
 //
 // Sensirion data sheet notes that in high res mode (14-bit), no more than 1 msmt every
 // 3.2 seconds should be made to keep self-heating below 0.1 degC.
 //
 
-// Here we do 2 * 400ms measurements followed by 9.2 sec cooldown to get new reading every 10 seconds
+// Here we do 2 * 500ms measurements followed by 9 sec cooldown to get new reading every 10 seconds
 
 const unsigned long RESET_INTERVAL = Timeout::SECOND; // 1 sec
-const unsigned long RETRY_INTERVAL = 100L; 
-const unsigned long MEAS_INTERVAL = 400L; 
-const unsigned long COOLDOWN_INTERVAL = 9.2 * Timeout::SECOND;
+const unsigned long MEAS_INTERVAL = 500L; 
+const unsigned long COOLDOWN_INTERVAL = 9 * Timeout::SECOND;
+const unsigned long RETRY_INTERVAL = 500L; 
+
+// We retry in 500 ms (RETRY INTERVAL), so will give sensor 30 second (60 * 500 ms) to respond before resetting
+const uint8_t FAIL_RESET_THRESHOLD = 60;
 
 // these cmd defs also include the 3 address bits which are always equal to zero
 const uint8_t SHT1X_MEAS_TEMP_CMD = 0x03;
@@ -75,8 +76,6 @@ const uint8_t SHT1X_STATE_MEAS_TEMP  = 0;
 const uint8_t SHT1X_STATE_READ_TEMP  = 1;
 const uint8_t SHT1X_STATE_MEAS_RH    = 2;
 const uint8_t SHT1X_STATE_READ_RH    = 3;
-
-const unsigned int INVALID = 0xffff;
 
 SHT1X::SHT1X(uint8_t clk_pin, uint8_t data_pin) :
   _clk_pin(clk_pin),
@@ -101,7 +100,7 @@ SHT1X::SHT1X(uint8_t clk_pin, uint8_t data_pin) :
 // there is a polynomial to convert temperature readings into 
 // temperature.
 //
-float SHT1X::rdg2temp(unsigned int rdg)
+float SHT1X::rdg2temp(uint16_t rdg)
 {
   float g = (float)rdg - 7000.0F;
   float t = -40.1 + 0.01 * (float)rdg - 2.0e-8 * g * g;
@@ -111,28 +110,12 @@ float SHT1X::rdg2temp(unsigned int rdg)
 // For RH, there is a polynomial to convert readings into % RH
 // There is also a smaller correction based on the temperature
 //
-float SHT1X::rdg2rh(unsigned int rdg, float temp)
+float SHT1X::rdg2rh(uint16_t rdg, float temp)
 {
   float so = (float)rdg;
   float rh_linear =  -2.0468F + so * (0.0367 -1.5955e-6 * so);
   float corr = (temp - 25.0F) * (0.01 + 0.00008 * so);
   return rh_linear + corr;
-}
-
-SHT1X::temp_t SHT1X::getTemp() {
-  if (_raw_temp == INVALID)
-    return temp_t::invalid;
-  return rdg2temp(_raw_temp) * temp_t::multiplier;
-}
-
-SHT1X::rh_t SHT1X::getRH() {
-  if (_raw_temp == INVALID || _raw_rh == INVALID)
-    return rh_t::invalid;
-  return rdg2rh(_raw_rh, rdg2temp(_raw_temp)) * rh_t::multiplier;
-}
-
-uint16_t SHT1X::getState() {
-  return (_last_error << 8) | _state;
 }
 
 //
@@ -144,16 +127,17 @@ uint16_t SHT1X::getState() {
 //
 void SHT1X::reset() {
   DATA_HIGH();
-  for (int k=0; k<10; k++) {
+  for (uint8_t k=0; k<10; k++) {
     CLOCK_HIGH();
     CLOCK_LOW();
   }    
+  _state = SHT1X_STATE_MEAS_TEMP;
   _fail_count = 0;
-  _raw_temp = INVALID;
-  _raw_rh = INVALID;
+  _temp.setInvalid();
+  _rh.setInvalid();
 }
 
-boolean SHT1X::send_cmd(byte cmd) {
+boolean SHT1X::send_cmd(uint8_t cmd) {
   // transmission start sequence
   CLOCK_HIGH();
   DATA_LOW();
@@ -164,13 +148,13 @@ boolean SHT1X::send_cmd(byte cmd) {
 
   // clock out the bits...
   boolean datastate = true; // current state of data pin
-  for (int k=0; k<8; k++) {
+  for (uint8_t k=0; k<8; k++) {
     // set the DATA pin output to match the data MSB
     // to avoid unnecessary noise on the DATA pin, only change the 
     // pin state if it is not equal to the desired state.
     //
-    boolean da_bit = ((cmd & 0x80) == 0x80);
-    boolean state_ok = datastate == da_bit;
+    bool da_bit = ((cmd & 0x80) == 0x80);
+    bool state_ok = datastate == da_bit;
     if (!state_ok) {
       if (da_bit)
         DATA_HIGH();
@@ -191,7 +175,7 @@ boolean SHT1X::send_cmd(byte cmd) {
     DATA_HIGH(); // prepare to read
     datastate = true;
   }
-  boolean ack = digitalRead(_data_pin) == LOW;
+  bool ack = digitalRead(_data_pin) == LOW;
   // toggle clock once more to clear the ACK
   CLOCK_HIGH();
   CLOCK_LOW();
@@ -210,13 +194,13 @@ boolean SHT1X::send_cmd(byte cmd) {
   return true;
 }
 
-void SHT1X::read_data(unsigned int *value, byte *crc) {
+uint16_t SHT1X::read_data(uint8_t *crc) {
   // caller must ensure data is ready to be read before calling this function
   // first data bit is ready to be read upon entry to this routine.
-  byte x[3];
-  for (byte m=0; m<3; m++) {
+  uint8_t x[3];
+  for (uint8_t m = 0; m < 3; m++) {
     x[m] = 0;
-    for (byte k=0; k<8; k++) {
+    for (uint8_t k = 0; k < 8; k++) {
       x[m] = (x[m] << 1);
       if (digitalRead(_data_pin) == HIGH) x[m] |= 0x01U;
       CLOCK_HIGH();
@@ -231,9 +215,8 @@ void SHT1X::read_data(unsigned int *value, byte *crc) {
     if (m < 2) 
       DATA_HIGH();
   }
-
-  *value = ((unsigned int)x[0] << 8) | (unsigned int)x[1];
   *crc = x[2];
+  return ((uint16_t)x[0] << 8) | (uint16_t)x[1];
 }
 
 //
@@ -246,17 +229,16 @@ void SHT1X::read_data(unsigned int *value, byte *crc) {
 // an extra level of confirmation that the sensor is responding to 
 // the proper command.
 //
-bool SHT1X::verify_crc8(byte cmd, unsigned int value, byte crc) {
-  byte reg = 0;
-  byte xmit[3];
+bool SHT1X::verify_crc8(uint8_t cmd, uint16_t value, uint8_t crc) {
+  uint8_t reg = 0;
+  uint8_t xmit[3];
   xmit[0] = cmd;
   xmit[1] = value >> 8;
   xmit[2] = value & 0xff;
-  boolean b0, b;
+  bool b0, b;
 
-  int k,m;
-  for (m=0; m<3; m++) {
-    for (k=0; k<8; k++) {
+  for (uint8_t m=0; m<3; m++) {
+    for (uint8_t k=0; k<8; k++) {
       b = (xmit[m] & 0x80) == 0x80;
       b0 = (reg & 0x01) == 0x01;
       reg = reg >> 1;
@@ -292,8 +274,8 @@ bool SHT1X::check() {
     return false;
   }
 
-  unsigned int data;
-  byte crc;
+  uint16_t data;
+  uint8_t crc;
 
   switch (_state) {
   case SHT1X_STATE_MEAS_TEMP:
@@ -306,9 +288,12 @@ bool SHT1X::check() {
 
   case SHT1X_STATE_READ_TEMP:
     if (done()) {
-      read_data(&data, &crc);
-      if (verify_crc8(SHT1X_MEAS_TEMP_CMD, data, crc)) {
-        _raw_temp = data;
+      data = read_data(&crc);
+      if (data == 0) {
+        _last_error = 5; // NO TEMP
+      } else if (verify_crc8(SHT1X_MEAS_TEMP_CMD, data, crc)) {
+        _ftemp = rdg2temp(data);
+        _temp = temp_t::scale(_ftemp);
         _state = SHT1X_STATE_MEAS_RH;
         _timeout.reset(0); // immediately go to RH measurement next time
         return false; // quit method
@@ -326,9 +311,11 @@ bool SHT1X::check() {
 
   case SHT1X_STATE_READ_RH:
     if (done()) {
-      read_data(&data, &crc);
-      if (verify_crc8(SHT1X_MEAS_RH_CMD, data, crc)) {
-        _raw_rh = data;
+      data = read_data(&crc);
+      if (data == 0) {
+        _last_error = 6; // NO RH
+      } else if (verify_crc8(SHT1X_MEAS_RH_CMD, data, crc)) {
+        _rh = rh_t::scale(rdg2rh(data, _ftemp));
         _state = SHT1X_STATE_MEAS_TEMP;
         _last_error = 0;
         _timeout.reset(COOLDOWN_INTERVAL);

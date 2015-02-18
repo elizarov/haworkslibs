@@ -60,12 +60,12 @@ private:
   void CLOCK_LOW();
   void CLOCK_HIGH();
   void reset();
-  bool send_cmd(byte cmd);
-  void read_data(unsigned int *value, byte *crc);
-  bool verify_crc8(byte cmd, unsigned int value, byte crc);
+  bool send_cmd(uint8_t cmd);
+  uint16_t read_data(uint8_t *crc);
+  bool verify_crc8(uint8_t cmd, uint16_t value, uint8_t crc);
   bool done();
-  float rdg2temp(unsigned int rdg);
-  float rdg2rh(unsigned int rdg, float temp);
+  float rdg2temp(uint16_t rdg);
+  float rdg2rh(uint16_t rdg, float temp);
 
   uint8_t _clk_pin;
   uint8_t _data_pin;
@@ -74,8 +74,23 @@ private:
   Timeout _timeout;
   uint8_t _fail_count;
 
-  unsigned int _raw_temp;
-  unsigned int _raw_rh;
+  float _ftemp;
+  temp_t _temp;
+  rh_t _rh;
 };
+
+// ------------ short method implementations are inline here ------------
+
+inline SHT1X::temp_t SHT1X::getTemp() {
+  return _temp;
+}
+
+inline SHT1X::rh_t SHT1X::getRH() {
+  return _rh;
+}
+
+inline uint16_t SHT1X::getState() {
+  return (_last_error << 8) | _state;
+}
 
 #endif
