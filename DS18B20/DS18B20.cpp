@@ -19,7 +19,7 @@ void DS18B20::clear() {
   for (uint8_t i = 0; i < DS18B20_SIZE; i++)
     _queue[i] = NO_VAL;
   _size = 0;
-  _value = temp_t::invalid;
+  _value.setInvalid();
 }
 
 void DS18B20::fail() {
@@ -50,7 +50,7 @@ bool DS18B20::check() {
       _tail = 0;
     _size++;
     // reset computed value
-    _value = temp_t::invalid;
+    _value.setInvalid();
     // reset error
     _last_error = 0;
     ok = true;
