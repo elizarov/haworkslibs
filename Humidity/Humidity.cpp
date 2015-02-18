@@ -93,16 +93,16 @@ const int32_t WVP[MAX_T - MIN_T + 1] PROGMEM = {
 
 wvp_t waterVaporPressure(wvp_temp_t temp, wvp_rh_t rh) {
   if (!temp || !rh)
-    return wvp_t::invalid;
+    return wvp_t::invalid();
   int16_t t = temp.floor();
   if (t < MIN_T || t >= MAX_T)
-    return wvp_t::invalid;
+    return wvp_t::invalid();
   if (rh > 100)
-    rh = 100; 
+    rh = fixnum16_0(100); 
   if (rh < 0)
-    rh = 0;
-  wvp_t p0 = (int32_t)pgm_read_dword(WVP + t - MIN_T);
-  wvp_t p1 = (int32_t)pgm_read_dword(WVP + t - MIN_T + 1); 
+    rh = fixnum16_0(0);
+  wvp_t p0 = (wvp_t)pgm_read_dword(WVP + t - MIN_T);
+  wvp_t p1 = (wvp_t)pgm_read_dword(WVP + t - MIN_T + 1); 
   wvp_temp_t t0 = temp - wvp_temp_t::scale(t);
   wvp_temp_t t1 = 1 - t0;
   return (p0 * t0 + p1 * t1) * rh / 100;

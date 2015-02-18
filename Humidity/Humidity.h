@@ -11,7 +11,7 @@
 
 typedef fixnum32_3 wvp_t; 
 typedef fixnum16_2 wvp_temp_t;
-typedef fixnum16_1 wvp_rh_t;
+typedef fixnum16_0 wvp_rh_t;
 
 //   temp -- temperature in Celcius (from -40 to +40, result is not available / invalid if outside this range)
 //   rh   -- relative humidity in percent (from 0 to 100, is trimmed to this range)
