@@ -1,5 +1,5 @@
 
-#include "HIH6120.h"
+#include "HIH.h"
 
 static const uint8_t STATE_MEASURE = 0;
 static const uint8_t STATE_RECEIVE = 1;
@@ -24,11 +24,11 @@ inline uint8_t Data::set(uint8_t (&b)[BYTES]) {
   return b[0] >> 6;
 }
 
-HIH6120::HIH6120() : 
+HIH::HIH() : 
   _timeout(0)
 {}
 
-inline uint8_t HIH6120::receive() {
+inline uint8_t HIH::receive() {
   // start twi master transaction
   uint8_t status;
   uint8_t b[BYTES];
@@ -60,7 +60,7 @@ inline uint8_t HIH6120::receive() {
   return 0;
 }
 
-bool HIH6120::retry() {
+bool HIH::retry() {
   _timeout.reset(RETRY);
   _state = STATE_MEASURE;
   if (_temp) {
@@ -73,7 +73,7 @@ bool HIH6120::retry() {
   return false;
 }
 
-bool HIH6120::check() {
+bool HIH::check() {
   if (!_timeout.check())
     return false;
   uint8_t status;

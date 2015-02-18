@@ -1,6 +1,8 @@
 /*
-  Honeywell HIH6120 I2C temperature and humidity sensor driver.
-  Connect sensor to I2C pins:
+  Honeywell HumidIcon HIHxxx-020 I2C temperature and humidity sensors driver.
+  This includes HIH6000, HIH6100, HIH8000, and HIH9000 series.
+
+  Connect sensor in SIP package to I2C pins in the following way:
   
   +-------+
   | *     |
@@ -16,20 +18,20 @@
   Author: Roman Elizarov
 */
 
-#ifndef HIH6120_H_
-#define HIH6120_H_
+#ifndef HIH_H_
+#define HIH_H_
 
 #include <Arduino.h>
 #include <FixNum.h>
 #include <Timeout.h>
 #include <TWIMaster.h>
 
-class HIH6120 {
+class HIH {
 public:
   typedef fixnum16_1 temp_t;  
   typedef fixnum16_1 rh_t;  
 
-  HIH6120();
+  HIH();
   bool check();        // true when something change (new reading taken or old one is cleared on too many errors)
   temp_t getTemp();
   rh_t getRH();
@@ -50,15 +52,15 @@ private:
 
 // ------------ short method implementations are inline here ------------
 
-inline HIH6120::temp_t HIH6120::getTemp() {
+inline HIH::temp_t HIH::getTemp() {
   return _temp;
 }
 
-inline HIH6120::rh_t HIH6120::getRH() {
+inline HIH::rh_t HIH::getRH() {
   return _rh;
 }
 
-inline uint16_t HIH6120::getState() {
+inline uint16_t HIH::getState() {
   return (_last_error << 8) | _state;
 }
 
