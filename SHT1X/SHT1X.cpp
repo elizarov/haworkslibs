@@ -293,7 +293,7 @@ bool SHT1X::check() {
         _last_error = 5; // NO TEMP
       } else if (verify_crc8(SHT1X_MEAS_TEMP_CMD, data, crc)) {
         _ftemp = rdg2temp(data);
-        _temp = temp_t::scale(_ftemp);
+        _temp = temp_t::fscale(_ftemp);
         _state = SHT1X_STATE_MEAS_RH;
         _timeout.reset(0); // immediately go to RH measurement next time
         return false; // quit method
@@ -315,7 +315,7 @@ bool SHT1X::check() {
       if (data == 0) {
         _last_error = 6; // NO RH
       } else if (verify_crc8(SHT1X_MEAS_RH_CMD, data, crc)) {
-        _rh = rh_t::scale(rdg2rh(data, _ftemp));
+        _rh = rh_t::fscale(rdg2rh(data, _ftemp));
         _state = SHT1X_STATE_MEAS_TEMP;
         _last_error = 0;
         _timeout.reset(COOLDOWN_INTERVAL);

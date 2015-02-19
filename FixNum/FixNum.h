@@ -34,8 +34,8 @@ public:
   explicit inline FixNum(T mantissa) : _mantissa(mantissa) {}
 
   // factory method to create from integer or float with appropriate scaling
-  inline static FixNum<T, prec> scale(T x)     { return (FixNum<T,prec>)(x * multiplier); }
-  inline static FixNum<T, prec> scale(float x) { return (FixNum<T,prec>)(x * multiplier); }
+  inline static FixNum<T, prec> scale(T x)      { return (FixNum<T,prec>)(x * multiplier); }
+  inline static FixNum<T, prec> fscale(float x) { return (FixNum<T,prec>)(x * multiplier); }
 
   // basic conversions and valid/invalid
   inline T mantissa() const               { return _mantissa; }
