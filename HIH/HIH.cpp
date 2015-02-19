@@ -51,10 +51,10 @@ inline uint8_t HIH::receive() {
   if (data1.h != data1.h || data2.t != data2.t)
     return 3; // different data second time
   // update temp and rh
-  _temp = fixnum32_1::scale(data1.t) * 165 / ((1 << 14) - 1) - 40;
+  _temp = fixnum32_1::scale(data1.t) * 165 / ((1 << 14) - 2) - 40;
   if (!_temp)
     return 4; // invalid temp reading
-  _rh = fixnum32_1::scale(data1.h) * 100 / ((1 << 14) - 1);
+  _rh = fixnum32_1::scale(data1.h) * 100 / ((1 << 14) - 2);
   if (!_rh)
     return 5; // invalid RH reading
   return 0;
