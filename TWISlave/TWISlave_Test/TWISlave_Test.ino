@@ -1,3 +1,10 @@
+/*
+  Test code for TWISlave that transmits 4 bytes of millis time and receives 4 bytes and prints them.
+  This sketch prints measurements to serial and blinks led on each one.
+
+  Author: Roman Elizarov
+*/
+
 #include <TWISlave.h>
 #include <BlinkLed.h>
 
@@ -23,11 +30,13 @@ void twiSlaveCall(uint8_t addr, bool slaveTransmit) {
 
 void twiSlaveDone(uint8_t size, bool slaveTransmit) {
   if (slaveTransmit)
-    Serial.print(F("Transmit done: "));
+    Serial.print(F("Transmit done:"));
   else  
-    Serial.print(F("Receive done: "));
-  for (uint8_t i = 0; i < size; i++)
+    Serial.print(F("Receive done:"));
+  for (uint8_t i = 0; i < size; i++) {
+    Serial.print(' ');
     Serial.print(buf.bytes[i], HEX);
+  }
   Serial.println();  
 }
 

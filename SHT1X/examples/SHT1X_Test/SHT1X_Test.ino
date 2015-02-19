@@ -1,3 +1,9 @@
+/*
+  Sample sketch for SHT1X library.
+
+  Author: Roman Elizarov
+*/
+
 #include <Timeout.h>
 #include <FixNum.h>
 #include <SHT1X.h>
@@ -16,8 +22,8 @@ void setup() {
 void loop() {
   if (sht1x.check()) {
     Serial.println("--- SHT1X Test ---");
-    Serial.print("T="); Serial.println(sht1x.getTemp().format());
-    Serial.print("H="); Serial.println(sht1x.getRH().format());
+    Serial.print("T = "); Serial.println(sht1x.getTemp().format());
+    Serial.print("H = "); Serial.println(sht1x.getRH().format());
   }
   // Print state periodically if there is some error or measurement in progress
   if (stateTimeout.check()) {

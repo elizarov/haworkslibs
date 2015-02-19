@@ -17,6 +17,8 @@
 
   This sketch prints measurements to serial and blinks led on each one.
   It also computes water vapor pressure.
+
+  Author: Roman Elizarov
 */
 
 #include <Timeout.h>
@@ -43,9 +45,9 @@ void loop() {
     HIH::temp_t temp = hih.getTemp();
     HIH::rh_t rh = hih.getRH();
     wvp_t wvp = waterVaporPressure(temp, rh);
-    Serial.print(F("T=")); Serial.print(temp.format()); Serial.println(F(" Celcius"));
-    Serial.print(F("H=")); Serial.print(rh.format());   Serial.println(F(" %"));
-    Serial.print(F("P=")); Serial.print(wvp.format());  Serial.println(F(" mbar"));
+    Serial.print(F("T = ")); Serial.print(temp.format()); Serial.println(F(" Celcius"));
+    Serial.print(F("H = ")); Serial.print(rh.format());   Serial.println(F(" %"));
+    Serial.print(F("P = ")); Serial.print(wvp.format());  Serial.println(F(" mbar"));
     digitalWrite(LED_PIN, 1);
     ledTimeout.reset(hih.getTemp() ? 1000 : 250);
   }

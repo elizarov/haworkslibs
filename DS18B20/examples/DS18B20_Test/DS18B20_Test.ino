@@ -1,3 +1,9 @@
+/*
+  Sample sketch for DS18B20 library.
+
+  Author: Roman Elizarov
+*/
+
 #include <OneWire.h>
 #include <FixNum.h>
 #include <Timeout.h>
@@ -16,7 +22,7 @@ void setup() {
 void loop() {
   if (ds18b20.check()) {
     Serial.println("--- DS18B20 Test ---");
-    Serial.print("T="); Serial.println(ds18b20.getTemp().format());
+    Serial.print("T = "); Serial.println(ds18b20.getTemp().format());
   }
   // Print state periodically if there is some error or measurement in progress
   if (stateTimeout.check()) {

@@ -1,6 +1,8 @@
 /*
   Test code for TWISlave combined with Honeywell HumidIcon HIHxxx-020 I2C temperature and humidity sensor on the same bus.
   This sketch prints measurements to serial and blinks led on each one.
+
+  Author: Roman Elizarov
 */
 
 #include <Timeout.h>

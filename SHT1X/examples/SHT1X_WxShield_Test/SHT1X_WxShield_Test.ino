@@ -2,6 +2,8 @@
   Test for SHT1X library with WSDL WxShield.
   This sketch prints measurements to serial and blinks led on each one.
   It also computes water vapor pressure.
+
+  Author: Roman Elizarov
 */
 
 #include <Timeout.h>
@@ -33,9 +35,9 @@ void loop() {
     SHT1X::temp_t temp = sht1x.getTemp();
     SHT1X::rh_t rh = sht1x.getRH();
     wvp_t wvp = waterVaporPressure(temp, rh);
-    Serial.print(F("T=")); Serial.print(temp.format()); Serial.println(F(" Celcius"));
-    Serial.print(F("H=")); Serial.print(rh.format());   Serial.println(F(" %"));
-    Serial.print(F("P=")); Serial.print(wvp.format());  Serial.println(F(" mbar"));
+    Serial.print(F("T = ")); Serial.print(temp.format()); Serial.println(F(" Celcius"));
+    Serial.print(F("H = ")); Serial.print(rh.format());   Serial.println(F(" %"));
+    Serial.print(F("P = ")); Serial.print(wvp.format());  Serial.println(F(" mbar"));
     digitalWrite(STATE_LED_PIN, 1);
     stateLedTimeout.reset(sht1x.getTemp() ? 1000 : 250);
   }
