@@ -1,5 +1,5 @@
 /*
-  TWI Master implementation that is not based on interruptes and supports different speeds.
+  TWI Master implementation that is not based on interrupts and supports different speeds.
   It plays nicely with TWI Slave code (restores TWI hardware to the previous state it was initially encountered in).
 
   This code works for regular Arduino Uno/Duemilanove/Pro boards only based on ATmega328p.

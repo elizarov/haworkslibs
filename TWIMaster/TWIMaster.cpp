@@ -58,7 +58,19 @@ uint8_t TWIMasterClass::wait(uint8_t expected) {
     Serial.print('=');
     Serial.print(status, HEX);
 #endif
-    abort();
+    switch (status) {
+    case TW_MT_ARB_LOST: // same as TW_MR_ARB_LOST
+      restore(); // no need to abort -- gracefully return to whatever mode TWI was in
+      break;
+    case TW_MT_SLA_NACK: // will need to send stop and release bus on all of these
+    case TW_MT_DATA_NACK:
+    case TW_MR_SLA_NACK:
+    case TW_BUS_ERROR: // stop recovers from bus errors, too
+      stop(); 
+      break;
+    default: // otherwise abort (something went horribly wrong)
+      abort();
+    }
     return status == 0 ? 0xff : status; // replace TWI status 0 with erorr code 0xff
   }
   return 0;
