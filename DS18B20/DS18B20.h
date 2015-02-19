@@ -24,7 +24,7 @@ public:
   uint8_t getState(); // last error code and status for debugging
 
 private:
-  static const uint8_t DS18B20_SIZE = 10;
+  static const uint8_t DS18B20_SIZE = 12;
   static const int16_t NO_VAL = INT_MAX;
   
   OneWire _wire;
@@ -39,9 +39,9 @@ private:
   temp_t _value; // computed value
 
   void clear();
-  void fail();
+  bool fail();
   int16_t readScratchPad();
-  void startConversion();
+  bool startConversion();
   void computeValue();
 };
 

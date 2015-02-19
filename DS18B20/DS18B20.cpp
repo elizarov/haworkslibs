@@ -22,20 +22,25 @@ void DS18B20::clear() {
   _value.setInvalid();
 }
 
-void DS18B20::fail() {
-  if (_fail_count >= FAIL_LIMIT)
+bool DS18B20::fail() {
+  if (_fail_count >= FAIL_LIMIT) {
+    if (_size == 0)
+      return false; // already cleared
     clear();
-  else
+    return true;
+  } else {
     _fail_count++;
+    return false;
+  }
 }
 
 bool DS18B20::check() {
   if (!_timeout.check())
     return false;
   int16_t val = readScratchPad();
-  bool ok = false;
+  bool result;
   if (val == NO_VAL) {
-    fail();
+    result = fail();
   } else {
     _fail_count = 0;
     // dequeue previous value
@@ -53,10 +58,10 @@ bool DS18B20::check() {
     _value.setInvalid();
     // reset error
     _last_error = 0;
-    ok = true;
+    result = true;
   }
-  startConversion();
-  return ok;
+  result |= startConversion();
+  return result;
 }
 
 DS18B20::temp_t DS18B20::getTemp() {
@@ -86,15 +91,15 @@ int16_t DS18B20::readScratchPad() {
   return (data[1] << 8) + data[0]; // take the two bytes from the response relating to temperature
 }
 
-void DS18B20::startConversion() {
+bool DS18B20::startConversion() {
   _timeout.reset(DS18B20_INTERVAL);
   if (!_wire.reset()) {
     _last_error = 3;
-    fail();
-    return;
+    return fail();
   }
   _wire.skip();
   _wire.write(0x44, 0); // start conversion
+  return false;
 }
 
 void DS18B20::computeValue() {
