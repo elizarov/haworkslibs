@@ -44,9 +44,9 @@ public:
   void setSpeed(twi_speed_t speed = TWI_DEFAULT_SPEED);
 
   // result != 0 means error, error code is returned
-  uint8_t transmit(uint8_t addr, uint8_t* buf, uint8_t n, bool keepBus = false);
+  uint8_t transmit(uint8_t addr, void *buf, uint8_t n, bool keepBus = false);
   // result != 0 means error, error code is returned
-  uint8_t receive(uint8_t addr, uint8_t* buf, uint8_t n, bool keepBus = false);
+  uint8_t receive(uint8_t addr, void *buf, uint8_t n, bool keepBus = false);
   // stop is optinal, transmit / receive call it when used with keepBus = false
   void stop(); 
 
