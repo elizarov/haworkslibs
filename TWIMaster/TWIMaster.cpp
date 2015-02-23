@@ -129,7 +129,7 @@ void TWIMasterClass::stop() {
 }
 
 // result != 0 means error, error code is returned
-uint8_t TWIMasterClass::transmit(uint8_t addr, void *buf, uint8_t n, bool keepBus) {
+uint8_t TWIMasterClass::transmit(uint8_t addr, const void *tx, uint8_t n, bool keepBus) {
   uint8_t status = start();
   if (status != 0)
     return status;
@@ -139,7 +139,7 @@ uint8_t TWIMasterClass::transmit(uint8_t addr, void *buf, uint8_t n, bool keepBu
   // write slave address + W, then data bits
   uint8_t b = (addr << 1) | TW_WRITE;
   uint8_t expect = TW_MT_SLA_ACK;
-  uint8_t *ptr = (uint8_t*)buf;
+  uint8_t *ptr = (uint8_t*)tx;
   while (true) {
     TWDR = b;
     TWCR = _BV(TWINT) | _BV(TWEN);
@@ -157,7 +157,7 @@ uint8_t TWIMasterClass::transmit(uint8_t addr, void *buf, uint8_t n, bool keepBu
 }
 
 // result != 0 means error, error code is returned
-uint8_t TWIMasterClass::receive(uint8_t addr, void *buf, uint8_t n, bool keepBus) {
+uint8_t TWIMasterClass::receive(uint8_t addr, void *rx, uint8_t n, bool keepBus) {
   uint8_t status = start();
   if (status != 0)
     return status;
@@ -171,7 +171,7 @@ uint8_t TWIMasterClass::receive(uint8_t addr, void *buf, uint8_t n, bool keepBus
   if (status != 0)
     return status;
   // read data bits
-  uint8_t *ptr = (uint8_t*)buf;
+  uint8_t *ptr = (uint8_t*)rx;
   while (n-- != 0) {
     uint8_t ack = n == 0 ? 0 : _BV(TWEA); // ack only last received byte
     TWCR = _BV(TWINT) | _BV(TWEN) | ack; 

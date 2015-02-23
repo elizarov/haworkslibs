@@ -44,11 +44,27 @@ public:
   void setSpeed(twi_speed_t speed = TWI_DEFAULT_SPEED);
 
   // result != 0 means error, error code is returned
-  uint8_t transmit(uint8_t addr, void *buf, uint8_t n, bool keepBus = false);
+  uint8_t transmit(uint8_t addr, const void *tx, uint8_t n, bool keepBus = false);
   // result != 0 means error, error code is returned
-  uint8_t receive(uint8_t addr, void *buf, uint8_t n, bool keepBus = false);
+  uint8_t receive(uint8_t addr, void *rx, uint8_t n, bool keepBus = false);
   // stop is optinal, transmit / receive call it when used with keepBus = false
   void stop(); 
+
+  // high-level convenience methods
+  template<typename T> inline uint8_t transmit(uint8_t addr, const T& tx) { 
+    return transmit(addr, &tx, sizeof(tx)); 
+  }
+
+  template<typename R> inline uint8_t receive(uint8_t addr, R& rx) { 
+    return receive(addr, &rx, sizeof(rx)); 
+  }
+
+  template<typename T, typename R> inline uint8_t transmitReceive(uint8_t addr, const T& tx, R& rx) { 
+    uint8_t status = transmit(addr, &tx, sizeof(tx), true);
+    if (status != 0)
+      return status;
+    return receive(addr, &rx, sizeof(rx));
+  }
 
 private:
   uint8_t _twcr;
