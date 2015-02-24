@@ -96,29 +96,29 @@ typedef FixNum<int32_t,6> fixnum32_6;
 
 // Parser for FixNum
 template<typename T> class FixNumParser {
-  private:
-    enum State {
-      START,
-      INT_PART,
-      FRAC_PART
-    };
-    
-    bool _neg;
-    bool _ok;
-    T _mantissa;
-    prec_t _prec;
-    State _state;
-  public:
-    enum Result {
-      BAD,
-      NUM,
-      DONE
-    };
-    static const prec_t MAX_PREC = 6;
+private:
+  enum State {
+    START,
+    INT_PART,
+    FRAC_PART
+  };
+  
+  bool _neg;
+  bool _ok;
+  T _mantissa;
+  prec_t _prec;
+  State _state;
+public:
+  enum Result {
+    BAD,
+    NUM,
+    DONE
+  };
+  static const prec_t MAX_PREC = 6;
 
-    void reset();    
-    Result parse(char ch);
-    template<typename T2, prec_t prec2> operator FixNum<T2, prec2>();
+  void reset();    
+  Result parse(char ch);
+  template<typename T2, prec_t prec2> operator FixNum<T2, prec2>();
 };
 
 // ----------- class FixNum implementation -----------
