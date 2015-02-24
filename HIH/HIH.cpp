@@ -65,8 +65,8 @@ bool HIH::retry() {
   _state = STATE_MEASURE;
   if (_temp) {
     if (_retry_count++ >= RETRY_LIMIT) {
-      _temp.setInvalid();
-      _rh.setInvalid();
+      _temp.clear();
+      _rh.clear();
       return true;
     }
   }

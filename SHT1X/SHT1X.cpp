@@ -133,8 +133,8 @@ void SHT1X::reset() {
   }    
   _state = SHT1X_STATE_MEAS_TEMP;
   _fail_count = 0;
-  _temp.setInvalid();
-  _rh.setInvalid();
+  _temp.clear();
+  _rh.clear();
 }
 
 boolean SHT1X::send_cmd(uint8_t cmd) {

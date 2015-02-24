@@ -361,7 +361,7 @@ void DS3231Temp::clear() {
   for (uint8_t i = 0; i < QUEUE_SIZE; i++)
     _queue[i] = NO_VAL;
   _size = 0;
-  _temp.setInvalid();
+  _temp.clear();
 }
 
 //force temperature sampling and converting to registers. If this function is not used the temperature is sampled once 64 Sec.
@@ -412,7 +412,7 @@ bool DS3231Temp::check() {
     if (_size < QUEUE_SIZE)
       _size++;
     // reset computed value
-    _temp.setInvalid();
+    _temp.clear();
     result = true;
   }
   result |= startConversion();

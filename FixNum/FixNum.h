@@ -44,7 +44,7 @@ public:
   inline bool operator!() const           { return !valid(); }
 
   // convenient invalid marker
-  inline void setInvalid()                { _mantissa = INVALID; }
+  inline void clear()                     { _mantissa = INVALID; }
 
   // convenient invalid method
   static inline FixNum<T, prec> invalid() { return (FixNum<T, prec>)INVALID; }
