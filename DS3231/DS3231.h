@@ -37,6 +37,7 @@ const uint8_t EverySecond = 0x01;
 const uint8_t EveryMinute = 0x02;
 const uint8_t EveryHour   = 0x03;
 
+// ========================================================================
 // Simple general-purpose date/time class (no TZ / DST / leap second handling!)
 class DateTime {
 public:
@@ -56,8 +57,9 @@ public:
   // 32-bit time as seconds since 1/1/2000
   long get() const;   
 
-  // true when time is define (non-zero)
-  explicit operator bool() { return y != 0 || m != 0 || d != 0 || hh != 0 || mm != 0 || ss != 0; }
+  // true when time is defined (non-zero)
+  explicit operator bool() const;
+  void clear(); // resets to zero
 
   // char array type to keep string representation as YY-MM-DD HH:MM:SS
   typedef char str_t[18];
@@ -76,8 +78,30 @@ public:
 
 private:
     uint8_t y, m, d, hh, mm, ss;
+
+    friend class DateTimeParser;
 };
 
+// ========================================================================
+// Parser for DateTime
+class DateTimeParser {
+public:
+  DateTimeParser(const char* prefix, const char* sufix);
+  void reset();
+  bool parse(char ch);
+  inline operator DateTime() { return _dt; }
+
+private:
+  enum State { PREFIX, DT, SUFFIX };
+  const char* _prefix;
+  const char* _suffix;
+  bool _done;
+  DateTime _dt;
+  State _state;
+  uint8_t _index;
+};
+
+// ========================================================================
 // RTC DS3231 chip connected via I2C and uses the TWIMaster library.
 // Only 24 Hour time format is supported in this implementation
 class DS3231 {

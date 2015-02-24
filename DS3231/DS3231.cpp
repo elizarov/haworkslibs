@@ -29,6 +29,8 @@
 #define DS3231_TMP_UP_REG           0x11
 #define DS3231_TMP_LOW_REG          0x12
 
+#define CT_CONVERT 0b00100000
+
 #define SECONDS_PER_DAY 86400L
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -38,23 +40,30 @@ static const uint8_t daysInMonth [] PROGMEM = { 31,28,31,30,31,30,31,31,30,31,30
 
 // number of days since 2000/01/01, valid for 2001..2099 (y is 01 to 99)
 static uint16_t date2days(uint8_t y, uint8_t m, uint8_t d) {
-    uint16_t days = d;
-    for (uint8_t i = 1; i < m; ++i)
-        days += pgm_read_byte(daysInMonth + i - 1);
-    if (m > 2 && y % 4 == 0)
-        ++days;
-    return days + 365 * y + (y + 3) / 4 - 1;
+  uint16_t days = d;
+  for (uint8_t i = 1; i < m; ++i)
+    days += pgm_read_byte(daysInMonth + i - 1);
+  if (m > 2 && y % 4 == 0)
+    ++days;
+  return days + 365 * y + (y + 3) / 4 - 1;
 }
 
 static long time2long(uint16_t days, uint8_t h, uint8_t m, uint8_t s) {
-    return ((days * 24L + h) * 60 + m) * 60 + s;
+  return ((days * 24L + h) * 60 + m) * 60 + s;
 }
 
 static uint8_t conv2d(const char* p) {
-    uint8_t v = 0;
-    if ('0' <= *p && *p <= '9')
-        v = *p - '0';
-    return 10 * v + *++p - '0';
+  uint8_t v = 0;
+  if ('0' <= *p && *p <= '9')
+    v = *p - '0';
+  return 10 * v + *++p - '0';
+}
+
+static uint8_t bcd2bin (uint8_t val) { return val - 6 * (val >> 4); }
+static uint8_t bin2bcd (uint8_t val) { return val + 6 * (val / 10); }
+
+static bool digit(char ch) {
+  return ch >= '0' && ch <= '9';
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -62,65 +71,78 @@ static uint8_t conv2d(const char* p) {
 // NOTE: also ignores leap seconds, see http://en.wikipedia.org/wiki/Leap_second
 
 DateTime::DateTime(long t) {
-    ss = t % 60;
-    t /= 60;
-    mm = t % 60;
-    t /= 60;
-    hh = t % 24;
-    uint16_t days = t / 24;
-    uint8_t leap;
-    for (y = 0; ; ++y) {
-        leap = y % 4 == 0;
-        if (days < 365 + leap)
-            break;
-        days -= 365 + leap;
-    }
-    for (m = 1; ; ++m) {
-        uint8_t daysPerMonth = pgm_read_byte(daysInMonth + m - 1);
-        if (leap && m == 2)
-            ++daysPerMonth;
-        if (days < daysPerMonth)
-            break;
-        days -= daysPerMonth;
-    }
-    d = days + 1;
+  ss = t % 60;
+  t /= 60;
+  mm = t % 60;
+  t /= 60;
+  hh = t % 24;
+  uint16_t days = t / 24;
+  uint8_t leap;
+  for (y = 0; ; ++y) {
+    leap = y % 4 == 0;
+    if (days < 365 + leap)
+      break;
+    days -= 365 + leap;
+  }
+  for (m = 1; ; ++m) {
+    uint8_t daysPerMonth = pgm_read_byte(daysInMonth + m - 1);
+    if (leap && m == 2)
+      ++daysPerMonth;
+    if (days < daysPerMonth)
+      break;
+    days -= daysPerMonth;
+  }
+  d = days + 1;
 }
 
 DateTime::DateTime (uint8_t year, uint8_t month, uint8_t date, uint8_t hour, uint8_t min, uint8_t sec) {
-    y = year;
-    m = month;
-    d = date;
-    hh = hour;
-    mm = min;
-    ss = sec;
+  y = year;
+  m = month;
+  d = date;
+  hh = hour;
+  mm = min;
+  ss = sec;
 }
 
 // A convenient constructor for using "the compiler's time":
 //   DateTime now (__DATE__, __TIME__);
 // NOTE: using PSTR would further reduce the RAM footprint
 DateTime::DateTime(const char* date, const char* time) {
-    // sample input: date = "Dec 26 2009", time = "12:34:56"
-    y = conv2d(date + 9);
-    // Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec 
-    switch (date[0]) {
-        case 'J': m = date[1] == 'a' ? 1 : m = date[2] == 'n' ? 6 : 7; break;
-        case 'F': m = 2; break;
-        case 'A': m = date[2] == 'r' ? 4 : 8; break;
-        case 'M': m = date[2] == 'r' ? 3 : 5; break;
-        case 'S': m = 9; break;
-        case 'O': m = 10; break;
-        case 'N': m = 11; break;
-        case 'D': m = 12; break;
-    }
-    d = conv2d(date + 4);
-    hh = conv2d(time);
-    mm = conv2d(time + 3);
-    ss = conv2d(time + 6);
+  // sample input: date = "Dec 26 2009", time = "12:34:56"
+  y = conv2d(date + 9);
+  // Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec 
+  switch (date[0]) {
+    case 'J': m = date[1] == 'a' ? 1 : m = date[2] == 'n' ? 6 : 7; break;
+    case 'F': m = 2; break;
+    case 'A': m = date[2] == 'r' ? 4 : 8; break;
+    case 'M': m = date[2] == 'r' ? 3 : 5; break;
+    case 'S': m = 9; break;
+    case 'O': m = 10; break;
+    case 'N': m = 11; break;
+    case 'D': m = 12; break;
+  }
+  d = conv2d(date + 4);
+  hh = conv2d(time);
+  mm = conv2d(time + 3);
+  ss = conv2d(time + 6);
 }
 
 long DateTime::get() const {
-    uint16_t days = date2days(y, m, d);
-    return time2long(days, hh, mm, ss);
+  uint16_t days = date2days(y, m, d);
+  return time2long(days, hh, mm, ss);
+}
+
+DateTime::operator bool() const { 
+  return y != 0 || m != 0 || d != 0 || hh != 0 || mm != 0 || ss != 0; 
+}
+
+void DateTime::clear() {
+  y = 0;
+  m = 0;
+  d = 0;
+  hh = 0;
+  mm = 0;
+  ss = 0;
 }
 
 DateTime::Buf::Buf(const DateTime& dt) {
@@ -139,10 +161,80 @@ DateTime::Buf::Buf(const DateTime& dt) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Utility methods
+// DateTimePaser
 
-static uint8_t bcd2bin (uint8_t val) { return val - 6 * (val >> 4); }
-static uint8_t bin2bcd (uint8_t val) { return val + 6 * (val / 10); }
+DateTimeParser::DateTimeParser(const char* prefix, const char* suffix) :
+  _prefix(prefix),
+  _suffix(suffix)
+{
+  reset();
+}
+
+void DateTimeParser::reset() {
+  _state = PREFIX;
+  _index = 0;
+  _done = false;
+  _dt.clear();
+}
+ 
+bool DateTimeParser::parse(char ch) {
+  if (_done)
+    reset(); // was done, start from scratch on this char
+  switch (_state) {
+  case PREFIX:
+    if (_prefix[_index] == 0) {
+      _state = DT;
+      _index = 0;
+      // will fall through
+    } else {
+      if (ch == _prefix[_index]) 
+        _index++;
+      else
+        reset();
+      break;
+    }
+    // fall through
+  case DT:
+    switch (_index) {
+    case  0: if (digit(ch)) { _index++; _dt.y  = (ch - '0') * 10; } else reset(); break;
+    case  1: if (digit(ch)) { _index++; _dt.y  += ch - '0';       } else reset(); break;
+    case  2: if (ch == '-') { _index++;                           } else reset(); break;
+    case  3: if (digit(ch)) { _index++; _dt.m  = (ch - '0') * 10; } else reset(); break;
+    case  4: if (digit(ch)) { _index++; _dt.m  += ch - '0';       } else reset(); break;
+    case  5: if (ch == '-') { _index++;                           } else reset(); break;
+    case  6: if (digit(ch)) { _index++; _dt.d  = (ch - '0') * 10; } else reset(); break;
+    case  7: if (digit(ch)) { _index++; _dt.d  += ch - '0';       } else reset(); break;
+    case  8: if (ch == ' ') { _index++;                           } else reset(); break;
+    case  9: if (digit(ch)) { _index++; _dt.hh = (ch - '0') * 10; } else reset(); break;
+    case 10: if (digit(ch)) { _index++; _dt.hh += ch - '0';       } else reset(); break;
+    case 11: if (ch == ':') { _index++;                           } else reset(); break;
+    case 12: if (digit(ch)) { _index++; _dt.mm = (ch - '0') * 10; } else reset(); break;
+    case 13: if (digit(ch)) { _index++; _dt.mm += ch - '0';       } else reset(); break;
+    case 14: if (ch == ':') { _index++;                           } else reset(); break;
+    case 15: if (digit(ch)) { _index++; _dt.ss = (ch - '0') * 10; } else reset(); break;
+    case 16: if (digit(ch)) { _index++; _dt.ss += ch - '0';       } else reset(); break;
+    }
+    if (_index < 17)
+      break;
+    _state = SUFFIX;
+    _index = 0;
+    if (_suffix[_index] == 0) {
+      _done = true;
+      return true; // no suffix -- full string done
+    }
+    break; // wait for first suffix char
+  case SUFFIX:
+    if (ch == _suffix[_index]) { 
+      _index++;
+      if (_suffix[_index] == 0) {
+        _done = true;
+        return true;
+      }
+    } else
+      reset();
+  }
+  return false;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // RTC DS3231 implementation
@@ -252,7 +344,7 @@ bool DS3231::clearINTStatus() {
   return writeRegister(DS3231_STATUS_REG, statusReg);
 }
 
-// ========================================================================
+////////////////////////////////////////////////////////////////////////////////
 // DS3231Temp class for oversampled temperature
 
 const long TEMP_INTERVAL = 1000; // take a reading every second
@@ -278,7 +370,7 @@ bool DS3231Temp::startConversion() {
   uint8_t ctReg = readRegister(DS3231_CONTROL_REG);
   if (_last_error != 0)
     return fail();
-  ctReg |= 0b00100000; 
+  ctReg |= CT_CONVERT; 
   if (!writeRegister(DS3231_CONTROL_REG, ctReg))
     return fail();
   return false;
@@ -300,6 +392,13 @@ bool DS3231Temp::check() {
   if (!_timeout.check())
     return false;
   _timeout.reset(TEMP_INTERVAL);
+  uint8_t ctReg = readRegister(DS3231_CONTROL_REG);
+  if (_last_error != 0)
+    return fail();
+  if ((ctReg &= CT_CONVERT) != 0) {
+    _last_error = 0xfd; // error - still converting
+    return fail(); 
+  }
   int16_t val = readTemp();
   bool result;
   if (val == NO_VAL) {
