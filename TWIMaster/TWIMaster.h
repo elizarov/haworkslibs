@@ -38,10 +38,8 @@ const twi_speed_t TWI_DEFAULT_SPEED = TWI_40K; // compromise speed, 100K is a bi
 
 class TWIMasterClass {
 public:
-  TWIMasterClass(twi_speed_t speed = TWI_DEFAULT_SPEED);
-
-  // setSpeed is optional, use only to change speed if != TWI_DEFAULT_SPEED is needed 
-  void setSpeed(twi_speed_t speed = TWI_DEFAULT_SPEED);
+  // begin is optional, begins at first operation with default speed
+  void begin(twi_speed_t speed = TWI_DEFAULT_SPEED);
 
   // result != 0 means error, error code is returned
   uint8_t transmit(uint8_t addr, const void *tx, uint8_t n, bool keepBus = false);

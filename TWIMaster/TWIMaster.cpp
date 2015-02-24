@@ -13,14 +13,11 @@ const uint8_t PIN_BITS = _BV(PORTC4) | _BV(PORTC5);
 // Singleton instance 
 TWIMasterClass TWIMaster; 
 
-TWIMasterClass::TWIMasterClass(twi_speed_t speed) {
+void TWIMasterClass::begin(twi_speed_t speed) {
   // configure twi pins as input and pullup
   DDRC &= ~PIN_BITS; // clear is input (just in case...)
   PORTC |= PIN_BITS; // set to pullup
-  setSpeed(speed);
-}
-
-inline void TWIMasterClass::setSpeed(twi_speed_t speed) {
+  // configure TWI speed
   cli();
   TWBR = (uint8_t)speed;
   TWSR = (uint8_t)(speed >> 8);
@@ -83,6 +80,9 @@ uint8_t TWIMasterClass::start() {
   Serial.print(repStart ? '!' : '[');
 #endif
   if (!repStart) {
+    // begin on first use (init speed)
+    if (TWBR == 0)
+      begin();
     // on first start save original TWEN, TWIE, and TWEA bits register value
     cli();
     _twcr = TWCR & (_BV(TWEN) | _BV(TWIE) | _BV(TWEA)); 
