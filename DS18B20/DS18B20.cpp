@@ -1,7 +1,7 @@
 #include "DS18B20.h"
 
 // Conversion period, 750 ms per spec
-const int DS18B20_INTERVAL = 750;
+const int TEMP_INTERVAL = 1000;
 
 // Scratch Pad Size with CRC
 const uint8_t DS18B20_SPS = 9;
@@ -9,14 +9,15 @@ const uint8_t DS18B20_SPS = 9;
 const uint8_t FAIL_LIMIT = 3;
 
 DS18B20::DS18B20(uint8_t pin) :
-  _wire(pin)
+  _wire(pin),
+  _timeout(TEMP_INTERVAL)
 {
   clear();
   startConversion();
 }
 
 void DS18B20::clear() {
-  for (uint8_t i = 0; i < DS18B20_SIZE; i++)
+  for (uint8_t i = 0; i < QUEUE_SIZE; i++)
     _queue[i] = NO_VAL;
   _size = 0;
   _value.setInvalid();
@@ -37,23 +38,19 @@ bool DS18B20::fail() {
 bool DS18B20::check() {
   if (!_timeout.check())
     return false;
+  _timeout.reset(TEMP_INTERVAL);
   int16_t val = readScratchPad();
   bool result;
   if (val == NO_VAL) {
     result = fail();
   } else {
     _fail_count = 0;
-    // dequeue previous value
-    if (_size == DS18B20_SIZE) {
-      if (_head == DS18B20_SIZE)
-        _head = 0;
-      _size--;
-    }
     // enqueue new value
-    _queue[_tail++] = val;
-    if (_tail == DS18B20_SIZE)
-      _tail = 0;
-    _size++;
+    _queue[_index++] = val;
+    if (_index == QUEUE_SIZE)
+      _index = 0;
+    if (_size < QUEUE_SIZE)
+      _size++;
     // reset computed value
     _value.setInvalid();
     // reset error
@@ -70,7 +67,7 @@ DS18B20::temp_t DS18B20::getTemp() {
   return _value;
 }
 
-uint8_t DS18B20::getState() {
+uint8_t DS18B20::getLastError() {
   return _last_error;
 }
 
@@ -92,7 +89,6 @@ int16_t DS18B20::readScratchPad() {
 }
 
 bool DS18B20::startConversion() {
-  _timeout.reset(DS18B20_INTERVAL);
   if (!_wire.reset()) {
     _last_error = 3;
     return fail();
@@ -107,11 +103,11 @@ void DS18B20::computeValue() {
   int lo = INT_MAX;
   int sum = 0;
   int count = 0;
-  for (uint8_t i = 0; i < DS18B20_SIZE; i++)
+  for (uint8_t i = 0; i < QUEUE_SIZE; i++)
     if (_queue[i] != NO_VAL) {
       sum += _queue[i];
       hi = max(hi, _queue[i]);
-      lo = min(hi, _queue[i]);
+      lo = min(lo, _queue[i]);
       count++;
     }
   if (count > 2) {

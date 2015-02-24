@@ -26,8 +26,8 @@ void loop() {
   }
   // Print state periodically if there is some error or measurement in progress
   if (stateTimeout.check()) {
-    if (ds18b20.getState() != 0) {
-      Serial.print("DS18B20 State = "); Serial.println(ds18b20.getState(), HEX);
+    if (ds18b20.getLastError() != 0) {
+      Serial.print("DS18B20 Error = "); Serial.println(ds18b20.getLastError(), HEX);
     }
     stateTimeout.reset(Timeout::SECOND);
   }

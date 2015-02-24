@@ -252,40 +252,106 @@ bool DS3231::clearINTStatus() {
   return writeRegister(DS3231_STATUS_REG, statusReg);
 }
 
+// ========================================================================
+// DS3231Temp class for oversampled temperature
+
+const long TEMP_INTERVAL = 1000; // take a reading every second
+const uint8_t FAIL_LIMIT = 3;
+
+DS3231Temp::DS3231Temp() :
+  _timeout(TEMP_INTERVAL)
+{
+  clear();
+  startConversion();
+}
+
+void DS3231Temp::clear() {
+  for (uint8_t i = 0; i < QUEUE_SIZE; i++)
+    _queue[i] = NO_VAL;
+  _size = 0;
+  _temp.setInvalid();
+}
+
 //force temperature sampling and converting to registers. If this function is not used the temperature is sampled once 64 Sec.
-bool DS3231::convertTemperature() {
+bool DS3231Temp::startConversion() {
   // Set CONV 
   uint8_t ctReg = readRegister(DS3231_CONTROL_REG);
   if (_last_error != 0)
-    return false;
+    return fail();
   ctReg |= 0b00100000; 
   if (!writeRegister(DS3231_CONTROL_REG, ctReg))
+    return fail();
+  return false;
+}
+
+bool DS3231Temp::fail() {
+  if (_fail_count >= FAIL_LIMIT) {
+    if (_size == 0)
+      return false; // already cleared
+    clear();
+    return true;
+  } else {
+    _fail_count++;
     return false;
-  Timeout timeout(300); // conversion takes 200 ms per datasheet
-  //wait until CONV is cleared. Indicates new temperature value is available in register.
-  while ((readRegister(DS3231_CONTROL_REG) & 0b00100000) != 0) {
-    if (timeout.check())
-      return false;
   }
-  return _last_error == 0;
 }
 
-//Read the temperature value from the register and convert it into float (deg C)
-float DS3231::getTemperature() {
-  float fTemperatureCelsius;
-  int8_t tUBYTE = readRegister(DS3231_TMP_UP_REG);  //signed two's complement form
-  if (_last_error != 0) 
-    return 0 / 0; // NAN
-  uint8_t tLRBYTE = readRegister(DS3231_TMP_LOW_REG); // fractional part
-  if (_last_error != 0) 
-    return 0 / 0; // NAN
-  bool neg = tUBYTE < 0;
-  if (neg)
-    tUBYTE = -tUBYTE;
-  fTemperatureCelsius = tUBYTE + ((tLRBYTE >> 6) * 0.25);
-  if (neg)
-    fTemperatureCelsius = -fTemperatureCelsius;
-  return fTemperatureCelsius;
+bool DS3231Temp::check() {
+  if (!_timeout.check())
+    return false;
+  _timeout.reset(TEMP_INTERVAL);
+  int16_t val = readTemp();
+  bool result;
+  if (val == NO_VAL) {
+    result = fail();
+  } else {
+    _fail_count = 0;
+    // enqueue new value
+    _queue[_index++] = val;
+    if (_index == QUEUE_SIZE)
+      _index = 0;
+    if (_size < QUEUE_SIZE)
+      _size++;
+    // reset computed value
+    _temp.setInvalid();
+    result = true;
+  }
+  result |= startConversion();
+  return result;
 }
 
+DS3231Temp::temp_t DS3231Temp::getTemp() {
+  if (!_temp && _size > 0)
+    computeTemp();
+  return _temp;
+}
 
+void DS3231Temp::computeTemp() {
+  int hi = INT_MIN;
+  int lo = INT_MAX;
+  int sum = 0;
+  int count = 0;
+  for (uint8_t i = 0; i < QUEUE_SIZE; i++)
+    if (_queue[i] != NO_VAL) {
+      sum += _queue[i];
+      hi = max(hi, _queue[i]);
+      lo = min(lo, _queue[i]);
+      count++;
+    }
+  if (count > 2) {
+    // drop outliers for even higher precision
+    sum -= hi;
+    sum -= lo;
+    count -= 2;
+  }
+  _temp = temp_t(((long)sum * temp_t::multiplier) / (count << 2));
+}
+
+int16_t DS3231Temp::readTemp() {
+  uint8_t regaddr = DS3231_TMP_UP_REG;
+  int8_t buf[2];  // note: signed
+  _last_error = TWIMaster.transmitReceive(DS3231_ADDRESS, regaddr, buf);
+  if (_last_error != 0)
+    return NO_VAL;
+  return (int16_t(buf[0]) << 2) | (uint8_t(buf[1]) >> 6);
+}

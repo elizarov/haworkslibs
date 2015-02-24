@@ -8,6 +8,7 @@
   - Handle the case of uknown / uninitialized date time
   - Removed 2000 offset to years (keep it down to hardware at two digits)
   - Added formatting in ISO "YY-MM-DD HH:MM:SS" format
+  - Support for oversampled temperature reading via a separate class and without floating point (uses FixNum)
 
   Author: Roman Elizarov
 */
@@ -81,26 +82,53 @@ private:
 // Only 24 Hour time format is supported in this implementation
 class DS3231 {
 public:
-    bool adjust(const DateTime& dt);  //Changes the date-time
-    DateTime now();                   //Gets the current date-time
+  bool adjust(const DateTime& dt);  //Changes the date-time
+  DateTime now();                   //Gets the current date-time
 
-    //Decides the /INT pin's output setting
-    //periodicity can be any of following defines: EverySecond, EveryMinute, EveryHour 
-    bool enableInterrupts(uint8_t periodicity);
-    bool enableInterrupts(uint8_t hh24, uint8_t mm, uint8_t ss);
-    bool disableInterrupts();
-    bool clearINTStatus();
+  //Decides the /INT pin's output setting
+  //periodicity can be any of following defines: EverySecond, EveryMinute, EveryHour 
+  bool enableInterrupts(uint8_t periodicity);
+  bool enableInterrupts(uint8_t hh24, uint8_t mm, uint8_t ss);
+  bool disableInterrupts();
+  bool clearINTStatus();
 
-    bool convertTemperature();
-    float getTemperature();
+  inline uint8_t getLastError() { return _last_error; } // for debugging I2C bus problems, see TWIMaster library
 
-    inline uint8_t getLastError() { return _last_error; } // for debugging I2C bus problems, see TWIMaster library
+protected:
+  uint8_t readRegister(uint8_t regaddress);
+  bool writeRegister(uint8_t regaddress, uint8_t value);
+
+  uint8_t _last_error;
+};
+
+// ========================================================================
+// DS3231Temp class for oversampled temperature
+
+class DS3231Temp : public DS3231 {
+public:
+  typedef fixnum16_2 temp_t;
+
+  DS3231Temp();
+
+  bool check(); // call periodically to force temperature readings
+  temp_t getTemp(); // get current temperature reading
 
 private:
-    uint8_t _last_error;
+  static const uint8_t QUEUE_SIZE = 12;
+  static const int16_t NO_VAL = 0x7fff;
+  
+  Timeout _timeout;
+  uint8_t _index;
+  uint8_t _size;
+  int16_t _queue[QUEUE_SIZE]; // queue of raw reads in 1/4 of degree Centigrade
+  uint8_t _fail_count;
+  temp_t _temp;
 
-    uint8_t readRegister(uint8_t regaddress);
-    bool writeRegister(uint8_t regaddress, uint8_t value);
+  void clear();
+  bool startConversion();
+  bool fail();
+  void computeTemp();
+  int16_t readTemp();
 };
 
 #endif
