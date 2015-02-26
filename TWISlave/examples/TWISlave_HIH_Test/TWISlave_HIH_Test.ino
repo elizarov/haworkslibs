@@ -24,25 +24,40 @@ union {
   long time;
 } buf;
 
-void twiSlaveCall(uint8_t addr, bool slaveTransmit) {
-  if (slaveTransmit) {
-    Serial.println(F("Transmit call"));
-    buf.time = millis();
-  } else 
-    Serial.println(F("Receive call"));
-  TWISlave.use(&buf, sizeof(buf));
-}
-
-void twiSlaveDone(uint8_t size, bool slaveTransmit) {
-  if (slaveTransmit)
-    Serial.print(F("Transmit done:"));
-  else  
-    Serial.print(F("Receive done:"));
-  for (uint8_t i = 0; i < size; i++) {
+void printBuf(uint8_t doneSize) {
+  for (uint8_t i = 0; i < doneSize; i++) {
     Serial.print(' ');
     Serial.print(buf.bytes[i], HEX);
-  }  
+  }
   Serial.println();  
+}
+
+void twiSlaveTransmit(uint8_t doneSize, bool more) {
+  Serial.print(F("Transmit("));
+  Serial.print(doneSize, DEC);
+  Serial.print(',');
+  Serial.print(more ? F("MORE"): F("DONE"));
+  Serial.println(")");
+  if (doneSize == 0) { // start
+    buf.time = millis();
+    TWISlave.use(&buf, sizeof(buf));
+  } 
+  if (!more) // done
+    printBuf(doneSize);
+}
+
+void twiSlaveReceive(uint8_t doneSize, bool more) {
+  Serial.print(F("Receive("));
+  Serial.print(doneSize, DEC);
+  Serial.print(',');
+  Serial.print(more ? F("MORE"): F("DONE"));
+  Serial.println(")");
+  if (doneSize == 0) { // start
+    buf.time = millis();
+    TWISlave.use(&buf, sizeof(buf));
+  } 
+  if (!more) // done
+    printBuf(doneSize);
 }
 
 void setup() {
