@@ -145,7 +145,7 @@ void DateTime::clear() {
   ss = 0;
 }
 
-DateTime::Buf::Buf(const DateTime& dt) {
+DateTime::Str::Str(const DateTime& dt) {
   formatDecimal(dt.year(), &_buf[0], 2, FMT_ZERO);
   _buf[2] = '-';
   formatDecimal(dt.month(), &_buf[3], 2, FMT_ZERO);

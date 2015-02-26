@@ -65,16 +65,16 @@ public:
   typedef char str_t[18];
 
   // Buffer class with temporary char array
-  class Buf {
+  class Str {
   private:
     str_t _buf;
   public:
-    Buf(const DateTime& dt);
-    inline operator char*() { return _buf; }
+    Str(const DateTime& dt);
+    inline operator const char*() const { return _buf; }
   };
 
   // formatting
-  inline Buf format() { return Buf(*this); }
+  inline Str format() const { return Str(*this); }
 
 private:
     uint8_t y, m, d, hh, mm, ss;

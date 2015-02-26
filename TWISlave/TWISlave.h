@@ -26,6 +26,9 @@ public:
   void begin(uint8_t addr);
   void use(void *buf, uint8_t size);
 
+  // convenience method
+  template<typename T> inline void use(T& buf) { use(&buf, sizeof(buf)); }
+
   // internal use only
   void _processInterrupt();
 
