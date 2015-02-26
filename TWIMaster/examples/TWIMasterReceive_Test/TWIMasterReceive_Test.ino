@@ -1,5 +1,5 @@
 /*
-  Test sketch that is supported to receive 4 bytes via I2C acting as a master
+  Test sketch that is supposed to receive 4 bytes via I2C acting as a master
   from TWISlave_Test sketch that acts as a slave.
 */
 
