@@ -1,6 +1,5 @@
 /*
-  Test sketch that is supposed to receive 4 bytes via I2C acting as a master
-  from TWISlave_Test sketch that acts as a slave.
+  Test sketch that transmits and receives in a single transaction.
 */
 
 #include <TWIMaster.h>
@@ -14,24 +13,26 @@ const uint8_t BLINK_LED_PIN = 13;
 BlinkLed blinkLed(BLINK_LED_PIN);
 Timeout timeout(0);
 
-uint8_t buf[4];
+long tx;
+uint8_t rx[4];
 uint8_t status = 0;
 
 void setup() {
   Serial.begin(57600);
-  Serial.println(F("=== TWIMaster Receive Test ==="));
-  Serial.print(F("Requesting from TWI address ")); Serial.println(ADDR, HEX);
+  Serial.println(F("=== TWIMaster TxRx Test ==="));
+  Serial.print(F("Working with TWI address ")); Serial.println(ADDR, HEX);
 }
 
 void loop() {
   if (timeout.check()) {
-    status = TWIMaster.receive(ADDR, buf);
-    Serial.print(F("Receive status: "));
+    tx = millis();
+    status = TWIMaster.transmitReceive(ADDR, tx, rx);
+    Serial.print(F("TxRx status: "));
     Serial.println(status, HEX);
     if (status == 0) {
-      for (uint8_t i = 0; i < sizeof(buf); i++) {
+      for (uint8_t i = 0; i < sizeof(rx); i++) {
         Serial.print(' ');
-        Serial.print(buf[i], HEX);
+        Serial.print(rx[i], HEX);
       }
       Serial.println();  
     }  
