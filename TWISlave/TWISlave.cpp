@@ -4,7 +4,7 @@
 #include <avr/interrupt.h>
 #include <util/twi.h>
 
-#define TWI_DEBUG // writes to Serial at every stage to debug I2C bus problems
+//#define TWI_DEBUG // writes to Serial at every stage to debug I2C bus problems
 
 #ifdef TWI_DEBUG
 #include <Arduino.h>
