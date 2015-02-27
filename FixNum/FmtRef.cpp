@@ -3,10 +3,8 @@
 char* FmtRef::find(char* pos, char tag) {
   while (true) {
     char c = *pos;
-    if (c == 0)
+    if (c == 0 || c == tag)
       return pos;
-    if (c == tag)
-      return pos + 1;
     pos++;
   } 
 }
