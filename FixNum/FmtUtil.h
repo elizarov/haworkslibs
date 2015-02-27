@@ -1,11 +1,13 @@
-#ifndef FMT_UTIL_H_
-#define FMT_UTIL_H_
-
 /*
   Utility routines to format decimal numbers represented in integral types with fixed decimal point.
   Only methods for int16 and int32 are provied to converse code size.
   Should not be used directly. Use FixNum class for convenience.
+
+  Author: Roman Elizarov
 */
+
+#ifndef FMT_UTIL_H_
+#define FMT_UTIL_H_
 
 #include <inttypes.h>
 
@@ -22,4 +24,3 @@ uint8_t formatDecimal(int16_t x, char* pos, uint8_t size, fmt_t fmt = FMT_NONE);
 uint8_t formatDecimal(int32_t x, char* pos, uint8_t size, fmt_t fmt = FMT_NONE);
 
 #endif
-

@@ -20,7 +20,7 @@
 //============================ Public API for FixNum library ============================
 
 // FixNum class
-template<typename T, uint8_t prec> class FixNum {
+template<typename T, prec_t prec> class FixNum {
 private:
   T _mantissa;
 
