@@ -17,6 +17,8 @@ void FmtRef::init(char* pos) {
     _size++;
     c = *(++pos);
   }
+  if (c == '0') 
+    _fmt |= FMT_ZERO;
   while (c != 0) {
     if (c == '.' && !dot)
       dot = true;
