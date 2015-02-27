@@ -1,5 +1,16 @@
 #include <FmtRef.h>
 
+char* FmtRef::find(char* pos, char tag) {
+  while (true) {
+    char c = *pos;
+    if (c == 0)
+      return pos;
+    if (c == tag)
+      return pos + 1;
+    pos++;
+  } 
+}
+
 void FmtRef::init(char* pos) {
   char c;
   while (true) {
@@ -33,13 +44,3 @@ void FmtRef::init(char* pos) {
   }
 }
 
-char* FmtRef::findTag(char* pos, char tag) {
-  while (true) {
-    char c = *pos;
-    if (c == 0)
-      return pos;
-    if (c == tag)
-      return pos + 1;
-    pos++;
-  } 
-}
