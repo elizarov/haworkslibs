@@ -117,7 +117,7 @@ inline SHT1X::rh_t rdg2rh(uint16_t so_rh, SHT1X::temp_t temp) {
   int32_t y =  -204680L + int32_t(so_rh) * x;
   // corr = (temp - 25.0) * (0.01 + 0.00008 * so_rh);
   //        \--------------------------------------/ z * 1e-5; 
-  int32_t z = ((fixnum32_2(temp).mantissa() - 2500L)  * (1000 + 8 * int32_t(so_rh))) / 100;
+  int32_t z = ((fixnum32_2(temp).mantissa() - 2500L) * (1000 + 8 * int32_t(so_rh))) / 100;
   // RH = rh_linear + corr
   return fixnum32_5(y + z);
 }
