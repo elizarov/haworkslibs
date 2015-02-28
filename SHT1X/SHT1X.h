@@ -45,7 +45,7 @@
 class SHT1X
 {
 public:
-  typedef fixnum16_1 temp_t;
+  typedef fixnum16_2 temp_t;
   typedef fixnum16_1 rh_t;
 
   SHT1X(uint8_t clock_pin, uint8_t data_pin);
@@ -64,8 +64,6 @@ private:
   uint16_t read_data(uint8_t *crc);
   bool verify_crc8(uint8_t cmd, uint16_t value, uint8_t crc);
   bool done();
-  float rdg2temp(uint16_t rdg);
-  float rdg2rh(uint16_t rdg, float temp);
 
   uint8_t _clk_pin;
   uint8_t _data_pin;
@@ -74,7 +72,6 @@ private:
   Timeout _timeout;
   uint8_t _fail_count;
 
-  float _ftemp;
   temp_t _temp;
   rh_t _rh;
 };

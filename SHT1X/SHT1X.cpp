@@ -100,22 +100,26 @@ SHT1X::SHT1X(uint8_t clk_pin, uint8_t data_pin) :
 // there is a polynomial to convert temperature readings into 
 // temperature.
 //
-float SHT1X::rdg2temp(uint16_t rdg)
-{
-  float g = (float)rdg - 7000.0F;
-  float t = -40.1 + 0.01 * (float)rdg - 2.0e-8 * g * g;
-  return t;
+inline SHT1X::temp_t rdg2temp(uint16_t so_t) {
+  // T = -40.1 + 0.01 * so_t; // NOTE: It is for 5V voltage
+  return fixnum16_2(-4010 + so_t);
 }
+
 //
 // For RH, there is a polynomial to convert readings into % RH
 // There is also a smaller correction based on the temperature
 //
-float SHT1X::rdg2rh(uint16_t rdg, float temp)
-{
-  float so = (float)rdg;
-  float rh_linear =  -2.0468F + so * (0.0367 -1.5955e-6 * so);
-  float corr = (temp - 25.0F) * (0.01 + 0.00008 * so);
-  return rh_linear + corr;
+inline SHT1X::rh_t rdg2rh(uint16_t so_rh, SHT1X::temp_t temp) {
+  // rh_linear = -2.0468 + so_rh * (0.0367 - 1.5955e-6 * so_rh);
+  //                               \--------------------------/  x * 1e-5
+  //              \-------------------------------------------/  y * 1e-5;
+  int32_t x = (367000000L - 15955L * int32_t(so_rh)) / 100000;
+  int32_t y =  -204680L + int32_t(so_rh) * x;
+  // corr = (temp - 25.0) * (0.01 + 0.00008 * so_rh);
+  //        \--------------------------------------/ z * 1e-5; 
+  int32_t z = ((fixnum32_2(temp).mantissa() - 2500L)  * (1000 + 8 * int32_t(so_rh))) / 100;
+  // RH = rh_linear + corr
+  return fixnum32_5(y + z);
 }
 
 //
@@ -292,8 +296,7 @@ bool SHT1X::check() {
       if (data == 0) {
         _last_error = 5; // NO TEMP
       } else if (verify_crc8(SHT1X_MEAS_TEMP_CMD, data, crc)) {
-        _ftemp = rdg2temp(data);
-        _temp = temp_t::fscale(_ftemp);
+        _temp = rdg2temp(data);
         _state = SHT1X_STATE_MEAS_RH;
         _timeout.reset(0); // immediately go to RH measurement next time
         return false; // quit method
@@ -315,7 +318,7 @@ bool SHT1X::check() {
       if (data == 0) {
         _last_error = 6; // NO RH
       } else if (verify_crc8(SHT1X_MEAS_RH_CMD, data, crc)) {
-        _rh = rh_t::fscale(rdg2rh(data, _ftemp));
+        _rh = rdg2rh(data, _temp);
         _state = SHT1X_STATE_MEAS_TEMP;
         _last_error = 0;
         _timeout.reset(COOLDOWN_INTERVAL);
