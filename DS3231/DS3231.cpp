@@ -132,8 +132,11 @@ long DateTime::get() const {
   return time2long(days, hh, mm, ss);
 }
 
-DateTime::operator bool() const { 
-  return y != 0 || m != 0 || d != 0 || hh != 0 || mm != 0 || ss != 0; 
+bool DateTime::valid() const { 
+  return y > 0 && y <= 99 && 
+    m > 0 && m <= 12 &&
+    d > 0 && d <= 31 &&
+    hh <= 23 && mm <= 59 && ss <= 59; 
 }
 
 void DateTime::clear() {

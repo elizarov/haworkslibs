@@ -57,8 +57,11 @@ public:
   // 32-bit time as seconds since 1/1/2000
   long get() const;   
 
-  // true when time is defined (non-zero)
-  explicit operator bool() const;
+  // true when time is defined (non-zero and good values)
+  bool valid() const;
+  inline explicit operator bool() const { return valid(); }
+  inline bool operator !() const { return !valid(); }
+
   void clear(); // resets to zero
 
   // char array type to keep string representation as YY-MM-DD HH:MM:SS
