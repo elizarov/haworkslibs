@@ -28,6 +28,8 @@ void FmtRef::init(char* pos) {
   }
   if (c == '0') 
     _fmt |= FMT_ZERO;
+  if (c == '9')
+    _fmt |= FMT_RIGHT;
   while (c != 0) {
     if (c == '.' && !dot)
       dot = true;
