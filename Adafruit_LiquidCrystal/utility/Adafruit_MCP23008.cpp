@@ -16,7 +16,7 @@
 #else
  #include "WProgram.h"
 #endif
-#include <Wire.h>
+#include <ExtendedWire.h>
 #include "Adafruit_MCP23008.h"
 
 
@@ -29,6 +29,7 @@ void Adafruit_MCP23008::begin(uint8_t addr) {
   i2caddr = addr;
 
   Wire.begin();
+  Wire.setSpeed(FAST);
 
   // set defaults!
   Wire.beginTransmission(MCP23008_ADDRESS | i2caddr);
