@@ -88,3 +88,13 @@ uint8_t formatDecimal(int16_t x, char* pos, uint8_t size, fmt_t fmt) {
 uint8_t formatDecimal(int32_t x, char* pos, uint8_t size, fmt_t fmt) {
   return formatDecimalT(x, pos, size, fmt);
 }
+
+// forward to int16
+uint8_t formatDecimal(uint8_t x, char* pos, uint8_t size, fmt_t fmt) {
+  return formatDecimal((int16_t)x, pos, size, fmt);
+}
+
+// forward to int16
+uint8_t formatDecimal(int8_t x, char* pos, uint8_t size, fmt_t fmt) {
+  return formatDecimal((int16_t)x, pos, size, fmt);
+}
