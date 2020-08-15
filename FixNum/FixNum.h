@@ -67,6 +67,9 @@ public:
   // formats to temporary buffer, with Ardino you can use Serial.println(num.format());
   Buf format(uint8_t size = FixNumUtil::Limits<T>::bufSize - 1, fmt_t fmt = (fmt_t)prec) const; 
 
+  // parse from string (reverses format)
+  static FixNum<T, prec> parse(const char* str); 
+
   // casts between various fixnum types
   template<typename T2, prec_t prec2> operator FixNum<T2, prec2>() const;
 };
@@ -107,7 +110,7 @@ private:
   bool _ok;
   T _mantissa;
   prec_t _prec;
-  State _state;
+  State _state = START;
 public:
   enum Result {
     BAD,
@@ -150,6 +153,7 @@ template<typename T, prec_t prec> FixNum<T, prec>::Buf::Buf(FixNum<T, prec> num,
 }
 
 template<typename T, prec_t prec> template<typename T2, prec_t prec2> inline FixNum<T, prec>::operator FixNum<T2, prec2>() const {
+  if (_mantissa == INVALID) return FixNum<T2, prec2>();
   return FixNum<T2, prec2>(FixNumUtil::convert<T, T2>(_mantissa, prec, prec2));
 }
 
@@ -202,6 +206,18 @@ template<typename T> typename FixNumParser<T>::Result FixNumParser<T>::parse(cha
 template<typename T> template<typename T2, prec_t prec2> inline FixNumParser<T>::operator FixNum<T2, prec2>() {
   T x = _neg ? -_mantissa : _mantissa;
   return FixNum<T2, prec2>(FixNumUtil::convert<T, T2>(x, _prec, prec2));  
+}
+
+// ----------- constructor from string -----------
+
+template<typename T, prec_t prec> FixNum<T, prec> FixNum<T, prec>::parse(const char* str) {
+  if (str == nullptr || *str == 0) return FixNum<T, prec>();
+  FixNumParser<T> parser;
+  while (*str != 0) {
+    if (parser.parse(*(str++)) != FixNumParser<T>::NUM)
+      return FixNum<T, prec>();
+  }    	
+  return parser;
 }
 
 // ----------- Comparisons between fixnums -----------
