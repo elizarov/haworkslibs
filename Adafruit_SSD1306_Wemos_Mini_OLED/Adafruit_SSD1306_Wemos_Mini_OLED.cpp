@@ -33,7 +33,7 @@ All text above, and the splash screen below must be included in any redistributi
 #include <Wire.h>
 #include <SPI.h>
 #include "Adafruit_GFX.h"
-#include "Adafruit_SSD1306.h"
+#include "Adafruit_SSD1306_Wemos_Mini_OLED.h"
 
 // the memory buffer for the LCD
 
