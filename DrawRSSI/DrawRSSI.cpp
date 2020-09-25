@@ -1,6 +1,6 @@
 #include "DrawRSSI.h"
 
-/* Draws 10 x 8 RSSI bar
+/* Draws 11 x 8 RSSI bar
     y
     0           ##
     1           ##
@@ -14,7 +14,7 @@
 */
 void drawRSSI(Adafruit_GFX& d, int16_t x, int16_t y, int32_t rssi, uint16_t color) {
   // -80 -> 1, -75 -> 2 ... , -45 -> 8
-  int32_t level = (level + 85) / 5;
+  int32_t level = (rssi + 85) / 5;
   if (level < 0) level = 0;
   if (level > 8) level = 8;
   for (int16_t i = 0; i < level; i++) {
