@@ -122,6 +122,7 @@ public:
   void reset();    
   Result parse(char ch);
   template<typename T2, prec_t prec2> operator FixNum<T2, prec2>();
+  template<typename T2> operator T2();
 };
 
 // ----------- class FixNum implementation -----------
@@ -206,6 +207,11 @@ template<typename T> typename FixNumParser<T>::Result FixNumParser<T>::parse(cha
 template<typename T> template<typename T2, prec_t prec2> inline FixNumParser<T>::operator FixNum<T2, prec2>() {
   T x = _neg ? -_mantissa : _mantissa;
   return FixNum<T2, prec2>(FixNumUtil::convert<T, T2>(x, _prec, prec2));  
+}
+
+template<typename T> template<typename T2> inline FixNumParser<T>::operator T2() {
+  T x = _neg ? -_mantissa : _mantissa;
+  return FixNumUtil::convert<T, T2>(x, _prec, 0);  
 }
 
 // ----------- constructor from string -----------
