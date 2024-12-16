@@ -58,7 +58,7 @@ public:
     char _buf[FixNumUtil::Limits<T>::bufSize];
   public:
     Buf(FixNum<T, prec> num, uint8_t size, fmt_t fmt);
-    inline operator char*() { return _buf; }
+    inline operator const char*() const { return _buf; }
   };
 
   // formatting
